@@ -98,7 +98,7 @@ public class CameraRecordRenderer implements GLSurfaceView.Renderer {
         mSurfaceHeight = height;
 
 
-        Log.w("test", "onSurfaceChanged ------>" + width + "----" + height);
+        Log.e("test", "onSurfaceChanged ------>" + width + "----" + height);
         if (gl != null) {
             gl.glViewport(0, 0, width, height);
         }

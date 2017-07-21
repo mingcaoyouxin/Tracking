@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
+import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.widget.ImageView;
@@ -50,6 +51,10 @@ public class CameraSurfaceView extends AutoFitGLSurfaceView
     private boolean enableCapture = true;
     private int previewWidth;
     private int previewHeight;
+
+    private long mBeginTime = 0;
+    private long mEndTime = 0;
+
     public CameraSurfaceView(Context context) {
         super(context);
         init(context);
@@ -203,7 +208,35 @@ public class CameraSurfaceView extends AutoFitGLSurfaceView
                                 if(enableTracking && enableCapture && mTracker != null){
                                     enableCapture = false;
                                     Log.i(TAG, "jerrypxiao onGetFrame  referencerect = (" + referenceRect.tl().x+ ", " + referenceRect.tl().y + ", " + referenceRect.br().x+ ", " + referenceRect.br().y);
-                                    trackingAsync(data, previewWidth, previewHeight, referenceRect);
+                                    mBeginTime = SystemClock.elapsedRealtimeNanos();
+                                    //trackingAsync(data, previewWidth, previewHeight, referenceRect);
+
+                                    Mat frameMat = new Mat(previewHeight, previewWidth, CvType.CV_8UC1);
+                                    frameMat.put(0,0, data);
+                                    Mat rgbMat = new Mat();
+                                    int code = mPreviewFormat == ImageFormat.NV21 ? Imgproc.COLOR_YUV2RGB_NV21 : COLOR_YUV2RGB_I420;
+                                    Imgproc.cvtColor(frameMat, rgbMat, Imgproc.COLOR_YUV2RGB_I420, 4);
+
+                                    Mat dst=rgbMat.clone();
+                                    //复制矩阵进入dst
+
+                                    Point center =new Point(rgbMat.width()/2.0,rgbMat.height()/2.0);
+                                    Mat affineTrans=Imgproc.getRotationMatrix2D(center, 270.0, 1.0);
+
+                                    Imgproc.warpAffine(rgbMat, dst, affineTrans, dst.size(),Imgproc.INTER_NEAREST);
+
+                                    //Log.i(TAG, "jerrypxiao onGetFrame  rgbMat.rows() =  " + rgbMat.rows() + ", rgbMat.cols() =" + rgbMat.cols());
+                                    final Bitmap mCacheBitmap = createBitmapfromMat(rgbMat);
+
+                                    new Handler(Looper.getMainLooper()).post(new Runnable() { // Tried new Handler(Looper.myLopper()) also
+                                        @Override
+                                        public void run() {
+                                            if(mDetectCallback != null){
+                                                mDetectCallback.onDetectedBitmap(mCacheBitmap);
+                                            }
+                                        }
+                                    });
+
                                 }
                             }
                         });//add
@@ -216,6 +249,12 @@ public class CameraSurfaceView extends AutoFitGLSurfaceView
             default:
                 break;
         }
+    }
+
+    public Bitmap createBitmapfromMat(Mat snap){
+        Bitmap bp = Bitmap.createBitmap(snap.cols(), snap.rows(), Bitmap.Config.RGB_565);
+        Utils.matToBitmap(snap, bp);
+        return bp;
     }
 
     private synchronized void trackingAsync(final byte[] data, final int width, final int height, final Rect2d rect2d){
@@ -257,6 +296,8 @@ public class CameraSurfaceView extends AutoFitGLSurfaceView
                 }else if(mState == STATE_UPDATE){
                   if(mDetectCallback != null){
                       Log.i(TAG, "jerrypxiao onPostExecute rect2d =" + rect2d.tl() + ", rect2d.br() = "+ rect2d.br() );
+                      mEndTime = SystemClock.elapsedRealtimeNanos();
+                      Log.i(TAG, "jerrypxiao cos time =" + (mEndTime - mBeginTime)/1000000 );
                       mDetectCallback.onRectDetected(rect2d);
                   }
                 }
@@ -294,5 +335,6 @@ public class CameraSurfaceView extends AutoFitGLSurfaceView
     private DetectCallback mDetectCallback;
     public interface DetectCallback{
         void onRectDetected(Rect2d rect2d);
+        void onDetectedBitmap(Bitmap bitmap);
     }
 }

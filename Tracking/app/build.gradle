@@ -5,7 +5,7 @@ android {
     buildToolsVersion "25.0.2"
     defaultConfig {
         applicationId "com.tracking"
-        minSdkVersion 15
+        minSdkVersion 17
         targetSdkVersion 25
         versionCode 1
         versionName "1.0"
@@ -33,9 +33,40 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    task ndkBuild(type: Exec, description: 'Compile JNI source with NDK') {
+        Properties properties = new Properties()
+        properties.load(project.rootProject.file('local.properties').newDataInputStream())
+        def ndkDir = properties.getProperty('ndk.dir')
+
+        if (org.apache.tools.ant.taskdefs.condition.Os.isFamily(org.apache.tools.ant.taskdefs.condition.Os.FAMILY_WINDOWS)) {
+            commandLine "$ndkDir/ndk-build.cmd", '-C', file('src/main/jni').absolutePath
+        } else {
+            commandLine "$ndkDir/ndk-build", '-C', file('src/main/jni').absolutePath
+        }
+    }
+
+    tasks.withType(JavaCompile) {
+        compileTask -> compileTask.dependsOn ndkBuild
+    }
+
+    task ndkClean(type: Exec, description: 'Clean NDK Binaries') {
+        Properties properties = new Properties()
+        properties.load(project.rootProject.file('local.properties').newDataInputStream())
+        def ndkDir = properties.getProperty('ndk.dir')
+
+        if (org.apache.tools.ant.taskdefs.condition.Os.isFamily(org.apache.tools.ant.taskdefs.condition.Os.FAMILY_WINDOWS)) {
+            commandLine "$ndkDir/ndk-build.cmd",'clean', '-C', file('src/main/jni').absolutePath
+        } else {
+            commandLine "$ndkDir/ndk-build",'clean', '-C', file('src/main/jni').absolutePath
+        }
+    }
+
+    clean.dependsOn 'ndkClean'
+
+
     externalNativeBuild {
-        cmake {
-            path "CMakeLists.txt"
+        ndkBuild {
+            path 'src/main/jni/Android.mk'
         }
     }
 }
@@ -51,4 +82,5 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile project(':openCVLibrary320dev')
     compile project(':camerafilters')
+    compile project(':CameraSdk')
 }

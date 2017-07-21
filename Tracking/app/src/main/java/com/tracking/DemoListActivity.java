@@ -14,8 +14,10 @@ import com.tracking.preview.PreviewActivity;
  */
 public class DemoListActivity extends ListActivity {
 
-    String tests[] = { "opencv",
-                        "物体追踪",
+    String tests[] = { "MainActivity",
+                        "preview.PreviewActivity",
+                        "preview.PreviewFilterActivity",
+                        "sdkexample.MainActivity",
                       };
 
     @Override
@@ -27,16 +29,14 @@ public class DemoListActivity extends ListActivity {
 
     @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
-        Class cl = MainActivity.class;
-        switch (position) {
-            case 0:
-                cl = MainActivity.class;
-                break;
-            case 1:
-                cl = PreviewActivity.class;
-                break;
+        String testName = tests[position];
+        Class clazz = null;
+        try{
+            clazz = Class.forName("com.tracking." + testName);
+            Intent intent = new Intent(this, clazz);
+            startActivity(intent);
+        }catch(ClassNotFoundException e){
+            e.printStackTrace();
         }
-        Intent intent = new Intent(this, cl);
-        startActivity(intent);
     }
 }

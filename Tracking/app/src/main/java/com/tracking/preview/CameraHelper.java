@@ -2,6 +2,7 @@ package com.tracking.preview;
 
 import android.graphics.Rect;
 import android.hardware.Camera;
+import android.util.Log;
 import android.view.View;
 
 import java.util.Collections;
@@ -38,8 +39,10 @@ public class CameraHelper {
             }
 
             if (Math.abs(size.height - targetHeight) < minDiff) {
-                optimalSize = size;
-                minDiff = Math.abs(size.height - targetHeight);
+                if (size.width <= 800 && size.height <= 800) {
+                    optimalSize = size;
+                    minDiff = Math.abs(size.height - targetHeight);
+                }
             }
         }
 
@@ -54,8 +57,8 @@ public class CameraHelper {
             }
         }
 
-        //Log.e("CameraHelper",
-        //        "optimalSize : width=" + optimalSize.width + " height=" + optimalSize.height);
+        Log.e("CameraHelper",
+                "optimalSize : width=" + optimalSize.width + " height=" + optimalSize.height);
         return optimalSize;
     }
 

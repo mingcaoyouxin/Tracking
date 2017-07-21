@@ -35,9 +35,11 @@ public class MainActivity extends AppCompatActivity {
 
     // Used to load the 'native-lib' library on application startup.
     static {
-        System.loadLibrary("native-lib");
-         //this keyword and "mLoaderCallback" are not defined in this scope
+        System.loadLibrary("OpenCV");
+        System.loadLibrary("opencv_java3");
     }
+
+    public static native int[] gray(int[] buf, int w, int h);
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -79,12 +81,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * A native method that is implemented by the 'native-lib' native library,
-     * which is packaged with this application.
-     */
-    public native String stringFromJNI();
-
     private void initView() {
         btnProc = (Button) findViewById(R.id.btn_gray_process);
         imageView = (ImageView) findViewById(R.id.image_view);
@@ -114,6 +110,16 @@ public class MainActivity extends AppCompatActivity {
                 */
                 //-------------------test---------------
 
+                Mat mSrcMat = new Mat(bmp.getHeight(), bmp.getWidth(), CvType.CV_8UC4);
+                int w = bmp.getWidth();
+                int h = bmp.getHeight();
+                int[] pixels = new int[w*h];
+                bmp.getPixels(pixels, 0, w, 0, 0, w, h);
+                int[] resultInt = gray(pixels, w, h);
+                Bitmap resultImg = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+                resultImg.setPixels(resultInt, 0, w, 0, 0, w, h);
+                imageView.setImageBitmap(resultImg);
+/*
                 Mat mHueImage = new Mat(rgbMat.size(), CvType.CV_8UC1);
                 Imgproc.cvtColor(rgbMat, mHueImage, Imgproc.COLOR_RGBA2RGB, 3);
 
@@ -139,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
                 //将矩阵grayMat转换为灰度图像
                 Utils.matToBitmap(finalMat, grayBmp);
                 imageView.setImageBitmap(grayBmp);
-
+*/
             }
         });
     }

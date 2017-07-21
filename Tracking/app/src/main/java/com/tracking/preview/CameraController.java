@@ -105,7 +105,6 @@ public class CameraController
 
                 mCameraMirrored = (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
 
-
                 mCamera.setDisplayOrientation(90);
 
                 mCamera.setPreviewTexture(surfaceTexture);
