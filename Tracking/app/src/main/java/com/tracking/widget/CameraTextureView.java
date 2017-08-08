@@ -76,7 +76,7 @@ public class CameraTextureView extends TextureView implements TextureView.Surfac
 
         Camera.Parameters parameters = mCamera.getParameters();
         for (Camera.Size size : parameters.getSupportedPreviewSizes()) {
-            if (size.width <= 600 && size.height <= 600) {
+            if (size.width <= 400 && size.height <= 400) {
                 mCameraHeight = size.height;
                 mCameraWidth = size.width;
                 break;
@@ -143,6 +143,7 @@ public class CameraTextureView extends TextureView implements TextureView.Surfac
             mDrawFps =  (30 * 1000.0f / (currentTimeStamp - mDrawTimeStamp));
             mDrawTimeStamp = currentTimeStamp;
             updateFps();
+
         }
     }
 

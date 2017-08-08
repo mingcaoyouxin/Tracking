@@ -20,6 +20,13 @@ public class TrackerManager {
 
     Tracker mTracker;
 
+    public native void OpenCMT(long matAddrGr, long matAddrRgba, long x,
+                               long y, long w, long h);
+
+    public native void ProcessCMT(long matAddrGr, long matAddrRgba);
+
+    public static native int[] CMTgetRect();
+
     private static class ObjTrackHolder{
         public static TrackerManager instance = new TrackerManager();
     }

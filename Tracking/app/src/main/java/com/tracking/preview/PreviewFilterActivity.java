@@ -3,6 +3,8 @@ package com.tracking.preview;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.graphics.RectF;
 import android.os.Bundle;
 import android.os.Handler;
@@ -33,12 +35,15 @@ import com.tracking.R;
 import com.tracking.widget.CameraTextureView;
 import com.tracking.widget.ConfirmationDialogFragment;
 import com.tracking.widget.FrameView;
+import com.unity3d.player.UnityPlayer;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
 import org.opencv.core.Rect2d;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.tracking.Tracker;
@@ -75,6 +80,7 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
 		setContentView(R.layout.preview_filter_activity);
 		initView();
 		initEvent();
@@ -95,6 +101,7 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 
 		mCameraTextureView = (CameraTextureView)findViewById(R.id.texture_cameraview);
 		mFramView = (FrameView)findViewById(R.id.obj_frameview);
+
 	}
 
 	private void initEvent(){
@@ -187,6 +194,9 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 				}else if(info.getFilterType() == ImageFilterTools.FilterType.I_HUDSON){
 					mType = "BOOSTING";
 					mIsInitTrack = false;
+				}else if(info.getFilterType() == ImageFilterTools.FilterType.I_NASHVILLE){
+					mType = "CMT";
+					mIsInitTrack = false;
 				}
 			}
 		});
@@ -250,12 +260,26 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 	@Override
 	protected void onPause() {
 		super.onPause();
-
 	}
 
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
+	}
+
+	// Low Memory Unity
+	@Override public void onLowMemory()
+	{
+		super.onLowMemory();
+	}
+
+	// Trim Memory Unity
+	@Override public void onTrimMemory(int level)
+	{
+		super.onTrimMemory(level);
+		if (level == TRIM_MEMORY_RUNNING_CRITICAL)
+		{
+		}
 	}
 
 	@Override
@@ -273,6 +297,7 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 				case LoaderCallbackInterface.SUCCESS: {
 					Log.i("PreviewActivity", "OpenCV loaded successfully");
 					//mCameraSurfaceView.initTracker();
+					System.loadLibrary("OpenCV");
 				}
 				break;
 				default: {
@@ -364,11 +389,11 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 					rectF.bottom = mCameraTextureView.mCameraHeight;
 				}
 
-				Log.i("TrackThread", "rectF.left = " + rectF.left + ", rectF.right = "
+/*				Log.i(TAG, "rectF.left = " + rectF.left + ", rectF.right = "
 						+ rectF.right + ", rectF.top = " + rectF.top + ", rectF.bottom = " + rectF.bottom);
 
-				Log.i("TrackThread", "mCameraTextureView.mCameraHeight = " + mCameraTextureView.mCameraHeight
-						+ ", mCameraTextureView.mCameraWidth = " + mCameraTextureView.mCameraWidth);
+				Log.i(TAG, "mCameraTextureView.mCameraHeight = " + mCameraTextureView.mCameraHeight
+						+ ", mCameraTextureView.mCameraWidth = " + mCameraTextureView.mCameraWidth);*/
 
 				Mat frameMat = new Mat(mCameraTextureView.mCameraHeight + mCameraTextureView.mCameraHeight/2, mCameraTextureView.mCameraWidth, CvType.CV_8UC1);
 				frameMat.put(0,0, mCurrentData);
@@ -376,47 +401,121 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 				Imgproc.cvtColor(frameMat, rgbMat, Imgproc.COLOR_YUV2RGB_NV21, 3);
 				Mat cvt3Mat = new Mat(rgbMat.size(), CvType.CV_8UC3);
 				Imgproc.cvtColor(rgbMat, cvt3Mat, Imgproc.COLOR_RGBA2RGB, 3);
+				Mat graymat = frameMat.submat(0, mCameraTextureView.mCameraHeight,
+						0,  mCameraTextureView.mCameraWidth);
 
-				if (!mIsInitTrack) {
+				if(mType.equals("CMT")){
+					if (!mIsInitTrack) {
+						TrackerManager.newInstance().OpenCMT(graymat.getNativeObjAddr(), rgbMat.getNativeObjAddr(),
+								(long)rectF.left, (long)rectF.top, (long)rectF.width(), (long)rectF.height());
+						mIsInitTrack = true;
+					} else {
+
+						long startTime = System.currentTimeMillis();
+						TrackerManager.newInstance().ProcessCMT(graymat.getNativeObjAddr(), rgbMat.getNativeObjAddr());
+						long endTime = System.currentTimeMillis();
+						final long costTime = (endTime - startTime);
+						mFramView.post(new Runnable() {
+							@Override
+							public void run() {
+								if (txt_cost_time != null) {
+									txt_cost_time.setText("检测时间 ：" + costTime + "ms");
+								}
+							}
+						});
+						double px = (double) rgbMat.width() / (double) rgbMat.width();
+						double py = (double) rgbMat.height() / (double) rgbMat.height();
+
+						int[] l = TrackerManager.newInstance().CMTgetRect();
+						if (l != null&& mFramView.mDrawRectF != null) {
+
+							/*for(int i=0; i<l.length; i++){
+								Log.e(TAG, "jerrypxiao [" + i + "] =, " + l[i]);
+							}*/
+
+							Point topLeft = new Point(l[2] * px, l[3] * py);
+							//Point bottomLeft = new Point(l[2] * px, l[3] * py);
+							Point bottomRight = new Point(l[6] * px, l[7] * py);
+							//Point topRight = new Point(l[6] * px, l[7] * py);
+
+							mFramView.mDrawRectF.left =  (float)topLeft.x * rateX;
+							mFramView.mDrawRectF.top = (float) topLeft.y * rateY;
+							mFramView.mDrawRectF.right = (float) bottomRight.x * rateX;
+							mFramView.mDrawRectF.bottom = (float) bottomRight.y * rateY;
+
+							//Log.e(TAG, "jerrypxiao [" + mFramView.mDrawRectF.top + "] =, " + mFramView.mDrawRectF.bottom);
+							//Log.e(TAG, "jerrypxiao [" + mFramView.mDrawRectF.left + "] =, " + mFramView.mDrawRectF.right);
+
+							mFramView.postInvalidate();
+						}
+					}
+				}else {
+
+					if (!mIsInitTrack) {
 					/*TrackerManager.newInstance().openTrack(mCurrentData, TrackerManager.TYPE_NV21,(int) rectF.left, (int) rectF.top,
 							(int) rectF.width(), (int) rectF.height(), mCameraTextureView.mCameraWidth, mCameraTextureView.mCameraHeight);*/
 
-					mTracker = Tracker.create(mType);
-					Rect2d rect2d = new Rect2d(rectF.left, rectF.top, rectF.width(), rectF.height());
-					if (mTracker != null) {
-						mTracker.init(cvt3Mat, rect2d);
-					}
-					mIsInitTrack = true;
-				} else {
+						mTracker = Tracker.create(mType);
+						Rect2d rect2d = new Rect2d(rectF.left, rectF.top, rectF.width(), rectF.height());
+						if (mTracker != null) {
+							mTracker.init(cvt3Mat, rect2d);
+						}
+						mIsInitTrack = true;
+					} else {
 					/*int[] cmtData = TrackerManager.newInstance().processTrack(mCurrentData,
 							TrackerManager.TYPE_NV21,mCameraTextureView.mCameraWidth, mCameraTextureView.mCameraHeight);*/
-					Rect2d currentRect2d = new  Rect2d();
-					long startTime = System.currentTimeMillis();
-					if (mTracker != null) {
-						mTracker.update(cvt3Mat, currentRect2d);
-					}
-					long endTime = System.currentTimeMillis();
-
-					final long costTime = (endTime -startTime);
-					mFramView.post(new Runnable() {
-						@Override
-						public void run() {
-							if(txt_cost_time != null) {
-								txt_cost_time.setText("检测时间 ："+costTime +"ms");
-							}
+						Rect2d currentRect2d = new Rect2d();
+						long startTime = System.currentTimeMillis();
+						if (mTracker != null) {
+							mTracker.update(cvt3Mat, currentRect2d);
 						}
-					});
-					if(currentRect2d != null && mFramView.mDrawRectF != null){
-						mFramView.mDrawRectF.left = (float)currentRect2d.tl().x * rateX;
-						mFramView.mDrawRectF.top = (float)currentRect2d.tl().y * rateY;
-						mFramView.mDrawRectF.right = (float)currentRect2d.br().x * rateX;
-						mFramView.mDrawRectF.bottom = (float)currentRect2d.br().y * rateY;
-						mFramView.postInvalidate();
+						long endTime = System.currentTimeMillis();
+
+						final long costTime = (endTime - startTime);
+						mFramView.post(new Runnable() {
+							@Override
+							public void run() {
+								if (txt_cost_time != null) {
+									txt_cost_time.setText("检测时间 ：" + costTime + "ms");
+								}
+							}
+						});
+						if (currentRect2d != null && mFramView.mDrawRectF != null) {
+							mFramView.mDrawRectF.left = (float) currentRect2d.tl().x * rateX;
+							mFramView.mDrawRectF.top = (float) currentRect2d.tl().y * rateY;
+							mFramView.mDrawRectF.right = (float) currentRect2d.br().x * rateX;
+							mFramView.mDrawRectF.bottom = (float) currentRect2d.br().y * rateY;
+							mFramView.postInvalidate();
+						}
 					}
+
 				}
+
+
+
 			}
 		}
 	}
 
+
+	static final int WIDTH = 400 ;//240;// 320;
+	static final int HEIGHT =240;// 135;// ;//240;0;
+	public Mat Reduce(Mat m) {
+		Mat dst = new Mat();
+		Imgproc.resize(m, dst, new org.opencv.core.Size(WIDTH, HEIGHT));
+		return dst;
+	}
+
+	Mat ReduceColor(Mat m) {
+		Mat dst = new Mat();
+		Bitmap bmp = Bitmap.createBitmap(m.width(), m.height(),
+				Bitmap.Config.ARGB_8888);
+		Utils.matToBitmap(m, bmp);
+		Bitmap bmp2 = Bitmap.createScaledBitmap(bmp, WIDTH, HEIGHT, false);
+		Utils.bitmapToMat(bmp2, dst);
+		// Imgproc.resize(m, dst, new Size(WIDTH,HEIGHT), 0, 0,
+		// Imgproc.INTER_CUBIC);
+		return dst;
+	}
 
 }

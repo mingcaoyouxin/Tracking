@@ -17,7 +17,17 @@ LOCAL_MODULE := OpenCV
 LOCAL_C_INCLUDES += $(LOCAL_PATH)
 
 LOCAL_SRC_FILES := hello.cpp
+LOCAL_SRC_FILES += jni_part.cpp
+LOCAL_SRC_FILES += CMT.cpp
+LOCAL_SRC_FILES += common.cpp
+LOCAL_SRC_FILES += Consensus.cpp
+LOCAL_SRC_FILES += Fusion.cpp
+LOCAL_SRC_FILES += Matcher.cpp
+LOCAL_SRC_FILES += Tracker.cpp
+LOCAL_SRC_FILES += fastcluster/fastcluster.cpp
 
-LOCAL_LDLIBS +=  -lm -llog
+
+LOCAL_LDLIBS +=  -llog -ldl
+LOCAL_CFLAGS += -std=c++11
 
 include              $(BUILD_SHARED_LIBRARY)
