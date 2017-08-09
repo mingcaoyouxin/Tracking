@@ -426,7 +426,7 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 						double py = (double) rgbMat.height() / (double) rgbMat.height();
 
 						int[] l = TrackerManager.newInstance().CMTgetRect();
-						if (l != null&& mFramView.mDrawRectF != null) {
+						if (TrackerManager.newInstance().CMTisTrackValid() && l != null&& mFramView.mDrawRectF != null) {
 
 							/*for(int i=0; i<l.length; i++){
 								Log.e(TAG, "jerrypxiao [" + i + "] =, " + l[i]);

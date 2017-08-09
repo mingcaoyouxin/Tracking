@@ -200,6 +200,10 @@ JNIEXPORT jintArray JNICALL Java_com_tracking_preview_TrackerManager_CMTgetRect(
 	return NULL;
 
 }
+
+JNIEXPORT jboolean JNICALL Java_com_tracking_preview_TrackerManager_CMTisTrackValid(JNIEnv *env){
+	return (jboolean) cmt1->is_track_valid;
+}
 /*
 JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_TLDSave(JNIEnv *env,jobject,jstring path)
 {

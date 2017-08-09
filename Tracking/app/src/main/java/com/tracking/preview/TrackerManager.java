@@ -27,6 +27,8 @@ public class TrackerManager {
 
     public static native int[] CMTgetRect();
 
+    public native boolean CMTisTrackValid();
+
     private static class ObjTrackHolder{
         public static TrackerManager instance = new TrackerManager();
     }

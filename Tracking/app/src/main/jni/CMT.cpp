@@ -211,9 +211,11 @@ void CMT::processFrame(Mat im_gray) {
     }
 
     //satyTest
-    global_match_open = center.x - bb_rot.size.width/2  < 0 || center.x + bb_rot.size.width/2 > im_prev.cols
-                        || center.y - bb_rot.size.height/2 < 0 || center.y - bb_rot.size.height/2 > im_prev.rows
-                        ||points_active.size()<initial_active_points_num/2;
+    global_match_open = center.x - bb_rot.size.width / 2  < 0
+                        || center.x + bb_rot.size.width / 2 > im_prev.cols
+                        || center.y - bb_rot.size.height / 2 < 0
+                        || center.y + bb_rot.size.height / 2 > im_prev.rows
+                        || points_active.size() < initial_active_points_num/2;
 
     is_track_valid = !global_match_open;
 
