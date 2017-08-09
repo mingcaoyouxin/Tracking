@@ -134,11 +134,11 @@ JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_ProcessTLD(JNIEn
 JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_OpenCMT(JNIEnv*, jobject, jlong addrGray, jlong addrRgba,jlong x, jlong y, jlong width, jlong height)
 {
 
-//	 if (cmt!=NULL)
-//	 {
-//		 delete cmt;
-//	 }
-//	 cmt = new CMT();
+	 if (cmt1!=NULL)
+	 {
+		 delete cmt1;
+	 }
+	 cmt1 = new CMT();
 	 Mat& im_gray  = *(Mat*)addrGray;
 	 Point p1(x,y);
 	 Point p2(x+width,y+height);

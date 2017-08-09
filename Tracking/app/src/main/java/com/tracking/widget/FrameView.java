@@ -201,7 +201,7 @@ public class FrameView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        mPaint.setColor(Color.WHITE);
+        //mPaint.setColor(Color.WHITE);
         if(mDrawRectF != null){
             //canvas.drawRect(getDrawRectF(), mPaint);
             //drawBitmap(canvas, getDrawRectF().left, getDrawRectF().top);
@@ -219,6 +219,12 @@ public class FrameView extends View {
             String dpStr = ""+ (int)mRectF.width() + "x" + (int)mRectF.height();
             canvas.drawText(dpStr, mRectF.left, mRectF.top, mPaint2);
         }
+    }
+
+    public void resetDrawRectF(RectF rectF){
+        mDrawRectF = new RectF(rectF);
+        needDraw = true;
+        invalidate();
     }
 
 

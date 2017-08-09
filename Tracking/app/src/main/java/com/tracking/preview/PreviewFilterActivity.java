@@ -73,7 +73,12 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 	private CameraTextureView mCameraTextureView;
 	private FrameView mFramView;
 	private Boolean mIsInitTrack = false;
-	public String mType = "KCF";
+	private RectF currentRectF;
+	public String mType = "CMT";
+
+	//显示的View的和实际相机高宽的y方向，x方向的比率
+	private float mRateY;
+	private float mRateX;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -307,6 +312,7 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 		}
 	};
 
+
 	private CameraTextureView.CameraDataListener cameraDatalistener = new CameraTextureView.CameraDataListener() {
 		@Override
 		public void onGetFrame(byte[] data) {
@@ -329,8 +335,12 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 				@Override
 				public void onCaluate(RectF rectF) {
 					mIsInitTrack = false;
+					currentRectF = new RectF(rectF);
 				}
 			});
+
+			mRateY = width * 1.0f / mCameraTextureView.mCameraHeight;
+			mRateX = height * 1.0f / mCameraTextureView.mCameraWidth;
 		}
 
 		@Override
@@ -374,11 +384,13 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 				}
 				float rateY = mFramView.getWidth() * 1.0f / mCameraTextureView.mCameraHeight;
 				float rateX = mFramView.getHeight() * 1.0f / mCameraTextureView.mCameraWidth;
-				RectF rectF = new RectF(mFramView.mDrawRectF);
-				rectF.left = rectF.left / rateX;
-				rectF.right = rectF.right / rateX;
-				rectF.top = rectF.top / rateY;
-				rectF.bottom = rectF.bottom / rateY;
+
+				Log.i(TAG, "rateY = " + rateY + ", mrateY = " + mRateY);
+				RectF rectF = new RectF(currentRectF);
+				rectF.left = rectF.left / mRateX;
+				rectF.right = rectF.right / mRateX;
+				rectF.top = rectF.top / mRateY;
+				rectF.bottom = rectF.bottom / mRateY;
 
 				if((rectF.left + rectF.width()) > mCameraTextureView.mCameraWidth){
 					rectF.right = mCameraTextureView.mCameraWidth;
@@ -411,7 +423,11 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 					} else {
 
 						long startTime = System.currentTimeMillis();
-						TrackerManager.newInstance().ProcessCMT(graymat.getNativeObjAddr(), rgbMat.getNativeObjAddr());
+						try {
+							TrackerManager.newInstance().ProcessCMT(graymat.getNativeObjAddr(), rgbMat.getNativeObjAddr());
+						}catch (Exception e){
+							e.printStackTrace();
+						}
 						long endTime = System.currentTimeMillis();
 						final long costTime = (endTime - startTime);
 						mFramView.post(new Runnable() {
@@ -437,15 +453,16 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 							Point bottomRight = new Point(l[6] * px, l[7] * py);
 							//Point topRight = new Point(l[6] * px, l[7] * py);
 
-							mFramView.mDrawRectF.left =  (float)topLeft.x * rateX;
-							mFramView.mDrawRectF.top = (float) topLeft.y * rateY;
-							mFramView.mDrawRectF.right = (float) bottomRight.x * rateX;
-							mFramView.mDrawRectF.bottom = (float) bottomRight.y * rateY;
-
-							//Log.e(TAG, "jerrypxiao [" + mFramView.mDrawRectF.top + "] =, " + mFramView.mDrawRectF.bottom);
-							//Log.e(TAG, "jerrypxiao [" + mFramView.mDrawRectF.left + "] =, " + mFramView.mDrawRectF.right);
-							mFramView.needDraw = true;
-							mFramView.postInvalidate();
+							final RectF resultRectF = new RectF((float)topLeft.x * mRateX,
+																(float) topLeft.y * mRateY,
+																(float) bottomRight.x * mRateX,
+																(float) bottomRight.y * mRateY);
+							mFramView.post(new Runnable() {
+								@Override
+								public void run() {
+									mFramView.resetDrawRectF(resultRectF);
+								}
+							});
 						}else{
 							mFramView.needDraw = false;
 							mFramView.postInvalidate();
@@ -483,12 +500,16 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 							}
 						});
 						if (currentRect2d != null && mFramView.mDrawRectF != null) {
-							mFramView.mDrawRectF.left = (float) currentRect2d.tl().x * rateX;
-							mFramView.mDrawRectF.top = (float) currentRect2d.tl().y * rateY;
-							mFramView.mDrawRectF.right = (float) currentRect2d.br().x * rateX;
-							mFramView.mDrawRectF.bottom = (float) currentRect2d.br().y * rateY;
-							mFramView.needDraw = true;
-							mFramView.postInvalidate();
+							final RectF resultRectF = new RectF((float) currentRect2d.tl().x * mRateX,
+																(float) currentRect2d.tl().y * mRateY,
+																(float) currentRect2d.br().x * mRateX,
+																(float) currentRect2d.br().y * mRateY);
+							mFramView.post(new Runnable() {
+								@Override
+								public void run() {
+									mFramView.resetDrawRectF(resultRectF);
+								}
+							});
 						}
 					}
 

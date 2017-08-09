@@ -215,7 +215,7 @@ void CMT::processFrame(Mat im_gray) {
                         || center.x + bb_rot.size.width / 2 > im_prev.cols
                         || center.y - bb_rot.size.height / 2 < 0
                         || center.y + bb_rot.size.height / 2 > im_prev.rows
-                        || points_active.size() < initial_active_points_num/2;
+                        || points_active.size() < initial_active_points_num/3;
 
     is_track_valid = !global_match_open;
 
