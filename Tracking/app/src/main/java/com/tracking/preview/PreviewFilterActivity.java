@@ -444,7 +444,10 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 
 							//Log.e(TAG, "jerrypxiao [" + mFramView.mDrawRectF.top + "] =, " + mFramView.mDrawRectF.bottom);
 							//Log.e(TAG, "jerrypxiao [" + mFramView.mDrawRectF.left + "] =, " + mFramView.mDrawRectF.right);
-
+							mFramView.needDraw = true;
+							mFramView.postInvalidate();
+						}else{
+							mFramView.needDraw = false;
 							mFramView.postInvalidate();
 						}
 					}
@@ -484,6 +487,7 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 							mFramView.mDrawRectF.top = (float) currentRect2d.tl().y * rateY;
 							mFramView.mDrawRectF.right = (float) currentRect2d.br().x * rateX;
 							mFramView.mDrawRectF.bottom = (float) currentRect2d.br().y * rateY;
+							mFramView.needDraw = true;
 							mFramView.postInvalidate();
 						}
 					}

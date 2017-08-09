@@ -36,6 +36,7 @@ public class FrameView extends View {
     public static final int VideoMode = 2;
 
     public int mViewMode = CameraMode;
+    public boolean needDraw = true;
 
     Bitmap bmp;
 
@@ -204,10 +205,12 @@ public class FrameView extends View {
         if(mDrawRectF != null){
             //canvas.drawRect(getDrawRectF(), mPaint);
             //drawBitmap(canvas, getDrawRectF().left, getDrawRectF().top);
-            drawSpecialSelectedRect(canvas, getDrawRectF());
-            if(mPredictRectF != null){
-                mPaint.setColor(Color.BLUE);
-                canvas.drawRect(mPredictRectF,mPaint);
+            if(needDraw) {
+                drawSpecialSelectedRect(canvas, getDrawRectF());
+                if (mPredictRectF != null) {
+                    mPaint.setColor(Color.BLUE);
+                    canvas.drawRect(mPredictRectF, mPaint);
+                }
             }
             return;
         }
