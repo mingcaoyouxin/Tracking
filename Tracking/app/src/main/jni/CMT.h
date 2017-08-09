@@ -37,6 +37,8 @@ public:
     vector<Point2f> points_active; //public for visualization purposes
     RotatedRect bb_rot;
 
+    bool is_track_valid;
+
 private:
     Ptr<FeatureDetector> detector;
     Ptr<DescriptorExtractor> descriptor;
@@ -48,6 +50,10 @@ private:
     float theta;
 
     Mat im_prev;
+
+    bool global_match_open;
+
+    int initial_active_points_num;
 };
 
 } /* namespace CMT */

@@ -26,8 +26,8 @@ public class CameraTextureView extends TextureView implements TextureView.Surfac
     protected int mRatioWidth = 0;
     protected int mRatioHeight = 0;
     private Camera mCamera;
-    public int mCameraWidth;
-    public int mCameraHeight;
+    public int mCameraWidth = 0;
+    public int mCameraHeight = 0;
     private byte[] mPreviewFrame1;
     private byte[] mPreviewFrame2;
     public boolean mSupportUserBuffer = true;
@@ -76,10 +76,9 @@ public class CameraTextureView extends TextureView implements TextureView.Surfac
 
         Camera.Parameters parameters = mCamera.getParameters();
         for (Camera.Size size : parameters.getSupportedPreviewSizes()) {
-            if (size.width <= 400 && size.height <= 400) {
+            if (size.width <= 400 && size.height <= 400 && size.height >= mCameraHeight && size.width >= mCameraWidth) {
                 mCameraHeight = size.height;
                 mCameraWidth = size.width;
-                break;
             }
         }
         //Camera 默认是横屏，高和宽度相反

@@ -21,6 +21,10 @@ void CMT::initialize(const Mat im_gray, const Rect rect)
     //Initialize rotated bounding box
     bb_rot = RotatedRect(center, size_initial, 0.0);
 
+    global_match_open = true;
+    is_track_valid = true;
+    initial_active_points_num = -1;
+
     //Initialize detector and descriptor
 #if CV_MAJOR_VERSION > 2
     detector = cv::FastFeatureDetector::create();
@@ -138,21 +142,28 @@ void CMT::processFrame(Mat im_gray) {
 
     Mat descriptors;
     descriptor->compute(im_gray, keypoints, descriptors);
-
-    //Match keypoints globally
-    vector<Point2f> points_matched_global;
-    vector<int> classes_matched_global;
-    matcher.matchGlobal(keypoints, descriptors, points_matched_global, classes_matched_global);
-
-    FILE_LOG(logDEBUG) << points_matched_global.size() << " points matched globally.";
-
-    //Fuse tracked and globally matched points
     vector<Point2f> points_fused;
     vector<int> classes_fused;
-    fusion.preferFirst(points_tracked, classes_tracked, points_matched_global, classes_matched_global,
-            points_fused, classes_fused);
 
-    FILE_LOG(logDEBUG) << points_fused.size() << " points fused.";
+    if(global_match_open) {
+        //Match keypoints globally
+        vector<Point2f> points_matched_global;
+        vector<int> classes_matched_global;
+        matcher.matchGlobal(keypoints, descriptors, points_matched_global, classes_matched_global);
+
+        FILE_LOG(logDEBUG) << points_matched_global.size() << " points matched globally.";
+
+        //Fuse tracked and globally matched points
+
+        fusion.preferFirst(points_tracked, classes_tracked, points_matched_global,
+                           classes_matched_global,
+                           points_fused, classes_fused);
+
+        FILE_LOG(logDEBUG) << points_fused.size() << " points fused.";
+    } else {
+        points_fused = points_tracked;
+        classes_fused = classes_tracked;
+    }
 
     //Estimate scale and rotation from the fused points
     float scale;
@@ -194,6 +205,18 @@ void CMT::processFrame(Mat im_gray) {
 
     //Remember current image
     im_prev = im_gray;
+
+    if(initial_active_points_num < 0){
+        initial_active_points_num = points_active.size();
+    }
+
+    //satyTest
+    global_match_open = center.x - bb_rot.size.width/2  < 0 || center.x + bb_rot.size.width/2 > im_prev.cols
+                        || center.y - bb_rot.size.height/2 < 0 || center.y - bb_rot.size.height/2 > im_prev.rows
+                        ||points_active.size()<initial_active_points_num/2;
+
+    is_track_valid = !global_match_open;
+
 
     FILE_LOG(logDEBUG) << "CMT::processFrame() return";
 }

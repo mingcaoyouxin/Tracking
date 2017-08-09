@@ -35,7 +35,6 @@ import com.tracking.R;
 import com.tracking.widget.CameraTextureView;
 import com.tracking.widget.ConfirmationDialogFragment;
 import com.tracking.widget.FrameView;
-import com.unity3d.player.UnityPlayer;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
