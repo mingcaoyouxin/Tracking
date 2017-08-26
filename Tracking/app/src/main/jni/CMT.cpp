@@ -2,12 +2,23 @@
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include<android/log.h>
+#include <opencv2/core/core.hpp>
 
 namespace cmt {
 
+#ifndef LOG_TAG
+#define LOG_TAG "TRACKING_JNI"
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG ,__VA_ARGS__) // 定义LOGD类型
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG ,__VA_ARGS__) // 定义LOGI类型
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN,LOG_TAG ,__VA_ARGS__) // 定义LOGW类型
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG ,__VA_ARGS__) // 定义LOGE类型
+#define LOGF(...) __android_log_print(ANDROID_LOG_FATAL,LOG_TAG ,__VA_ARGS__) // 定义LOGF类型
+#endif
+
 void CMT::initialize(const Mat im_gray, const Rect rect)
 {
-    FILE_LOG(logDEBUG) << "CMT::initialize() call";
+    //FILE_LOG(logDEBUG) << "CMT::initialize() call";
 
     //Remember initial size
     size_initial = rect.size();
@@ -82,7 +93,8 @@ void CMT::initialize(const Mat im_gray, const Rect rect)
         points_fg.push_back(keypoints_fg[i].pt);
     }
 
-    FILE_LOG(logDEBUG) << points_fg.size() << " foreground points.";
+    //FILE_LOG(logDEBUG) << points_fg.size() << " foreground points.";
+    LOGE("CMT initialize points_fg.size() :%d\n",points_fg.size());
 
     for (size_t i = 0; i < keypoints_bg.size(); i++)
     {
@@ -109,19 +121,21 @@ void CMT::initialize(const Mat im_gray, const Rect rect)
         classes_active = classes_fg;
     }
 
-    FILE_LOG(logDEBUG) << "CMT::initialize() return";
+    //FILE_LOG(logDEBUG) << "CMT::initialize() return";
 }
 
 void CMT::processFrame(Mat im_gray) {
 
-    FILE_LOG(logDEBUG) << "CMT::processFrame() call";
+    //FILE_LOG(logDEBUG) << "CMT::processFrame() call";
 
     //Track keypoints
+    double startCTime = now_ms();
     vector<Point2f> points_tracked;
     vector<unsigned char> status;
     tracker.track(im_prev, im_gray, points_active, points_tracked, status);
-
-    FILE_LOG(logDEBUG) << points_tracked.size() << " tracked points.";
+    LOGD("CMTTIME processFrame  trackerTime :%.3f\n", (now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
+    //FILE_LOG(logDEBUG) << points_tracked.size() << " tracked points.";
+    //LOGD("CMT processFrame points_tracked.size() :%d\n",points_tracked.size());
 
     //keep only successful classes
     vector<int> classes_tracked;
@@ -134,43 +148,52 @@ void CMT::processFrame(Mat im_gray) {
 
     }
 
+    double detectTime = now_ms();
     //Detect keypoints, compute descriptors
     vector<KeyPoint> keypoints;
     detector->detect(im_gray, keypoints);
 
-    FILE_LOG(logDEBUG) << keypoints.size() << " keypoints found.";
+    //FILE_LOG(logDEBUG) << keypoints.size() << " keypoints found.";
+    LOGD("CMTTIME processFrame  detectTime keypoints detect %d coss :%.3f\n",keypoints.size(),
+         (now_ms()-detectTime)*1000.0/CLOCKS_PER_SEC);
 
     Mat descriptors;
+    double descriptorTime = now_ms();
     descriptor->compute(im_gray, keypoints, descriptors);
+    LOGD("CMTTIME processFrame  descriptorTime :%.3f\n", (now_ms()-descriptorTime)*1000.0/CLOCKS_PER_SEC);
     vector<Point2f> points_fused;
     vector<int> classes_fused;
 
     if(global_match_open) {
         //Match keypoints globally
+        double matchGlobalTime = now_ms();
         vector<Point2f> points_matched_global;
         vector<int> classes_matched_global;
         matcher.matchGlobal(keypoints, descriptors, points_matched_global, classes_matched_global);
-
-        FILE_LOG(logDEBUG) << points_matched_global.size() << " points matched globally.";
+        LOGE("CMTTIME processFrame points_matched_global.size()= %d matchGlobalTime :%.3f\n",
+             points_matched_global.size(), (now_ms()-matchGlobalTime)*1000.0/CLOCKS_PER_SEC);
+        //FILE_LOG(logDEBUG) << points_matched_global.size() << " points matched globally.";
 
         //Fuse tracked and globally matched points
-
+        double fusionTime = now_ms();
         fusion.preferFirst(points_tracked, classes_tracked, points_matched_global,
                            classes_matched_global,
                            points_fused, classes_fused);
-
-        FILE_LOG(logDEBUG) << points_fused.size() << " points fused.";
+        LOGE("CMTTIME processFrame points_fused.size()= %d fusionTime :%.3f\n",
+             points_fused.size(), (now_ms()-fusionTime)*1000.0/CLOCKS_PER_SEC);
+        //FILE_LOG(logDEBUG) << points_fused.size() << " points fused.";
     } else {
         points_fused = points_tracked;
         classes_fused = classes_tracked;
     }
 
+    double matchLocalTime = now_ms();
     //Estimate scale and rotation from the fused points
     float scale;
     float rotation;
     consensus.estimateScaleRotation(points_fused, classes_fused, scale, rotation);
 
-    FILE_LOG(logDEBUG) << "scale " << scale << ", " << "rotation " << rotation;
+    //FILE_LOG(logDEBUG) << "scale " << scale << ", " << "rotation " << rotation;
 
     //Find inliers and the center of their votes
     Point2f center;
@@ -179,15 +202,17 @@ void CMT::processFrame(Mat im_gray) {
     consensus.findConsensus(points_fused, classes_fused, scale, rotation,
             center, points_inlier, classes_inlier);
 
-    FILE_LOG(logDEBUG) << points_inlier.size() << " inlier points.";
-    FILE_LOG(logDEBUG) << "center " << center;
+    //FILE_LOG(logDEBUG) << points_inlier.size() << " inlier points.";
+    //FILE_LOG(logDEBUG) << "center " << center;
 
     //Match keypoints locally
     vector<Point2f> points_matched_local;
     vector<int> classes_matched_local;
     matcher.matchLocal(keypoints, descriptors, center, scale, rotation, points_matched_local, classes_matched_local);
 
-    FILE_LOG(logDEBUG) << points_matched_local.size() << " points matched locally.";
+    //FILE_LOG(logDEBUG) << points_matched_local.size() << " points matched locally.";
+    LOGE("CMTTIME processFrame points_matched_local.size()= %d matchLocalTime :%.3f\n",
+         points_matched_local.size(), (now_ms()-matchLocalTime)*1000.0/CLOCKS_PER_SEC);
 
     //Clear active points
     points_active.clear();
@@ -198,7 +223,7 @@ void CMT::processFrame(Mat im_gray) {
 //    points_active = points_fused;
 //    classes_active = classes_fused;
 
-    FILE_LOG(logDEBUG) << points_active.size() << " final fused points.";
+    //FILE_LOG(logDEBUG) << points_active.size() << " final fused points.";
 
     //TODO: Use theta to suppress result
     bb_rot = RotatedRect(center,  size_initial * scale, rotation/CV_PI * 180);
@@ -219,8 +244,8 @@ void CMT::processFrame(Mat im_gray) {
 
     is_track_valid = !global_match_open;
 
-
-    FILE_LOG(logDEBUG) << "CMT::processFrame() return";
+    LOGD("CMTTIME processFrame:%.3f\n",(now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
+    //FILE_LOG(logDEBUG) << "CMT::processFrame() return";
 }
 
 } /* namespace CMT */

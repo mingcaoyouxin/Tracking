@@ -30,4 +30,13 @@ LOCAL_SRC_FILES += fastcluster/fastcluster.cpp
 LOCAL_LDLIBS +=  -llog -ldl
 LOCAL_CFLAGS += -std=c++11
 
+LOCAL_CPPFLAGS += -ffunction-sections -fdata-sections -fvisibility=hidden
+LOCAL_CFLAGS += -ffunction-sections -fdata-sections -fvisibility=hidden -g -mfloat-abi=softfp -mfpu=neon -march=armv7-a -mtune=cortex-a8
+LOCAL_LDFLAGS += -Wl,--gc-sections,--icf=safe
+LOCAL_ARM_MODE := arm
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+# 采用NEON优化技术
+LOCAL_ARM_NEON := true
+endif
+
 include              $(BUILD_SHARED_LIBRARY)

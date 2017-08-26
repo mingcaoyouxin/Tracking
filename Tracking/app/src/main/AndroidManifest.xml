@@ -55,13 +55,6 @@
         <activity android:name="com.muzhi.camerasdk.PhotoEnhanceActivity" />
         <activity android:name="com.muzhi.camerasdk.GraffitiActivity" />
 
-        <activity
-            android:launchMode="singleTask"
-            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection"
-            android:name="com.tracking.unity3d.TestUnity3d">
-            <meta-data android:name="unityplayer.UnityActivity" android:value="true" />
-        </activity>
-
     </application>
 
 </manifest>
