@@ -9,11 +9,11 @@ namespace cmt {
 
 #ifndef LOG_TAG
 #define LOG_TAG "TRACKING_JNI"
-#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG ,__VA_ARGS__) // ¶¨ÒåLOGDÀàÐÍ
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG ,__VA_ARGS__) // ¶¨ÒåLOGIÀàÐÍ
-#define LOGW(...) __android_log_print(ANDROID_LOG_WARN,LOG_TAG ,__VA_ARGS__) // ¶¨ÒåLOGWÀàÐÍ
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG ,__VA_ARGS__) // ¶¨ÒåLOGEÀàÐÍ
-#define LOGF(...) __android_log_print(ANDROID_LOG_FATAL,LOG_TAG ,__VA_ARGS__) // ¶¨ÒåLOGFÀàÐÍ
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG ,__VA_ARGS__) // ï¿½ï¿½ï¿½ï¿½LOGDï¿½ï¿½ï¿½ï¿½
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG ,__VA_ARGS__) // ï¿½ï¿½ï¿½ï¿½LOGIï¿½ï¿½ï¿½ï¿½
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN,LOG_TAG ,__VA_ARGS__) // ï¿½ï¿½ï¿½ï¿½LOGWï¿½ï¿½ï¿½ï¿½
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG ,__VA_ARGS__) // ï¿½ï¿½ï¿½ï¿½LOGEï¿½ï¿½ï¿½ï¿½
+#define LOGF(...) __android_log_print(ANDROID_LOG_FATAL,LOG_TAG ,__VA_ARGS__) // ï¿½ï¿½ï¿½ï¿½LOGFï¿½ï¿½ï¿½ï¿½
 #endif
 
 void CMT::initialize(const Mat im_gray, const Rect rect)
@@ -38,7 +38,7 @@ void CMT::initialize(const Mat im_gray, const Rect rect)
 
     //Initialize detector and descriptor
 #if CV_MAJOR_VERSION > 2
-    detector = cv::FastFeatureDetector::create();
+    detector = cv::FastFeatureDetector::create(1);
     descriptor = cv::BRISK::create();
 #else
     detector = FeatureDetector::create(str_detector);
@@ -48,6 +48,46 @@ void CMT::initialize(const Mat im_gray, const Rect rect)
     //Get initial keypoints in whole image and compute their descriptors
     vector<KeyPoint> keypoints;
     detector->detect(im_gray, keypoints);
+
+    int expectedKeyPointNum = 50;
+    int expectedThreshold = 1;
+    const size_t numSize = 100;
+    int num[numSize + 1] = {0};
+    int fgNum = 0;
+
+    for(size_t i = 0; i < keypoints.size(); i++) {
+        KeyPoint k = keypoints[i];
+        Point2f pt = k.pt;
+
+        if (pt.x > rect.x && pt.y > rect.y && pt.x < rect.br().x && pt.y < rect.br().y) {
+            fgNum++;
+            int r = (int) keypoints[i].response;
+            if (r > 0 && r < numSize) {
+                num[r]++;
+            } else if (r >= numSize) {
+                num[numSize]++;
+            } else {
+                num[0]++;
+            }
+        }
+    }
+    if(fgNum > expectedKeyPointNum) {
+        int sum = 0;
+        for (size_t i = 0; i < numSize + 1; i++) {
+            sum += num[i];
+            if (sum > fgNum - expectedKeyPointNum) {
+                expectedThreshold = i;
+                break;
+            }
+        }
+        LOGE("expectedThreshold = %d\n",expectedThreshold);
+        detector->clear();
+        keypoints.clear();
+        detector = cv::FastFeatureDetector::create(expectedThreshold);
+        detector->detect(im_gray, keypoints);
+    }
+
+
 
     //Divide keypoints into foreground and background keypoints according to selection
     vector<KeyPoint> keypoints_fg;
@@ -243,6 +283,9 @@ void CMT::processFrame(Mat im_gray) {
                         || points_active.size() < initial_active_points_num/3;
 
     is_track_valid = !global_match_open;
+//    global_match_open = true;
+//
+//    is_track_valid = true;
 
     LOGD("CMTTIME processFrame:%.3f\n",(now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
     //FILE_LOG(logDEBUG) << "CMT::processFrame() return";
