@@ -7,18 +7,12 @@
 
 namespace cmt {
 
-#ifndef LOG_TAG
-#define LOG_TAG "TRACKING_JNI"
-#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG ,__VA_ARGS__) // ����LOGD����
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG ,__VA_ARGS__) // ����LOGI����
-#define LOGW(...) __android_log_print(ANDROID_LOG_WARN,LOG_TAG ,__VA_ARGS__) // ����LOGW����
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG ,__VA_ARGS__) // ����LOGE����
-#define LOGF(...) __android_log_print(ANDROID_LOG_FATAL,LOG_TAG ,__VA_ARGS__) // ����LOGF����
-#endif
+
 
 void CMT::initialize(const Mat im_gray, const Rect rect)
 {
     //FILE_LOG(logDEBUG) << "CMT::initialize() call";
+    LOGE("CMT::initialize() call ");
 
     //Remember initial size
     size_initial = rect.size();
@@ -173,7 +167,7 @@ void CMT::processFrame(Mat im_gray) {
     vector<Point2f> points_tracked;
     vector<unsigned char> status;
     tracker.track(im_prev, im_gray, points_active, points_tracked, status);
-    LOGD("CMTTIME processFrame  trackerTime :%.3f\n", (now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
+    LOGD("CMTTIME processFrame points_tracked.size() %d,  trackerTime :%.3f\n", points_tracked.size(), (now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
     //FILE_LOG(logDEBUG) << points_tracked.size() << " tracked points.";
     //LOGD("CMT processFrame points_tracked.size() :%d\n",points_tracked.size());
 
@@ -219,8 +213,7 @@ void CMT::processFrame(Mat im_gray) {
         fusion.preferFirst(points_tracked, classes_tracked, points_matched_global,
                            classes_matched_global,
                            points_fused, classes_fused);
-        LOGE("CMTTIME processFrame points_fused.size()= %d fusionTime :%.3f\n",
-             points_fused.size(), (now_ms()-fusionTime)*1000.0/CLOCKS_PER_SEC);
+        LOGE("CMTTIME processFrame points_fused.size()= %d \n", points_fused.size());
         //FILE_LOG(logDEBUG) << points_fused.size() << " points fused.";
     } else {
         points_fused = points_tracked;
@@ -264,6 +257,8 @@ void CMT::processFrame(Mat im_gray) {
 //    classes_active = classes_fused;
 
     //FILE_LOG(logDEBUG) << points_active.size() << " final fused points.";
+    LOGI("CMTTIME processFrame final fused points :%d, initial_active_points_num = :%d \n",
+         points_active.size(), initial_active_points_num);
 
     //TODO: Use theta to suppress result
     bb_rot = RotatedRect(center,  size_initial * scale, rotation/CV_PI * 180);

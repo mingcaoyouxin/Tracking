@@ -12,15 +12,79 @@ using namespace cmt;
 /*using namespace tld;*/
 
 extern "C" {
+
+typedef enum {
+	NV21 = 0,
+	RGB,
+	RGBA
+} DataType;
+/*
 JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba);
-//JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_OpenTLD(JNIEnv*, jobject, jlong addrGray, jlong addrRgba,jlong x,jlong y,jlong width,jlong height);
+//JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_OpenTLD(JNIEnv*, jobject, jlong addrGray, jlong addrRgba,jlong x,jlong y,jlong width,jlong height);*/
 
 bool CMTinitiated=false;
   //TLD * etld=NULL ;
   CMT * cmt1=new CMT();
-
   long rect[4];
 
+uint8_t *g_dataBuff = NULL;
+int g_dataSize = 0;
+char *g_debufInfo = NULL;
+int CmtWidth = 400;
+int CmtHeight = 300;
+
+void allocateDataBuff(int size) {
+	if (g_dataSize >= size) {
+		return;
+	}
+	if (g_dataBuff != NULL) {
+		delete[] g_dataBuff;
+		g_dataBuff = NULL;
+	}
+	g_dataBuff = new uint8_t[size];
+	g_dataSize = size;
+}
+
+
+void caluateResizeSize(int width, int height) {
+    float rateX = 1.0f;
+    float rateY = 1.0f;
+    CmtWidth = width;
+    CmtHeight = height;
+    if (width >= 600 || height >= 600) {
+        rateX = 400 * 1.0f / width;
+        rateY = 400 * 1.0f / height;
+        if (rateX < rateY) {
+            CmtWidth = 400;
+            CmtHeight = (int) (height * rateX);
+            rateY = rateX;
+        } else {
+            CmtHeight = 400;
+            CmtWidth = (int) (width * rateY);
+            rateX = rateY;
+        }
+    }
+}
+
+
+Mat getTrackMat(uint8_t *buf, int dataType, int width, int height) {
+	Mat resultMat, tmp,img,grayMat;
+	switch (dataType) {
+		case NV21:
+			tmp = Mat(height + height / 2, width, CV_8UC1, buf);
+			//cv::cvtColor(tmp, resultMat, CV_YUV420sp2GRAY);
+			cv::cvtColor(tmp, img, CV_YUV420sp2GRAY);
+			if (CmtWidth == width && CmtHeight == height) {
+				cv::cvtColor(img, resultMat, CV_GRAY2RGBA);
+			} else {
+				cv::resize(img, grayMat, cv::Size(CmtWidth, CmtHeight));
+                cv::cvtColor(grayMat, resultMat, CV_GRAY2RGBA);
+			}
+			break;
+	}
+	return resultMat;
+}
+/*
 JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_FindFeatures(JNIEnv*, jobject, jlong addrGray, jlong addrRgba)
 {
     Mat& mGr  = *(Mat*)addrGray;
@@ -38,100 +102,63 @@ JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_FindFeatures(JNI
         const KeyPoint& kp = v[i];
         circle(mRgb, Point(kp.pt.x, kp.pt.y), 10, Scalar(255,0,0,255));
     }
-}
-/*
-
-JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_OpenTLD(JNIEnv*, jobject, jlong addrGray, jlong addrRgba,
-		jlong x, jlong y, jlong width, jlong height)
-{
-
-	if (etld!=NULL)
-	{
-		etld->release();
-		delete etld;
-	}
-    etld = new TLD();
-    Mat& mGr  = *(Mat*)addrGray;
-    Mat& mRgb = *(Mat*)addrRgba;
-
-    int t=  mRgb.cols;
-    etld->detectorCascade->imgWidth =mGr.cols;
-    etld->detectorCascade->imgHeight = mGr.rows;
-    etld->detectorCascade->imgWidthStep = mGr.step;
-
-    Rect r;
-    r.x= x;//mGr.size().width/2-mGr.size().width/4;
-    r.y= y;// mGr.size().height/2-mGr.size().height/4;
-    r.width= width;//mGr.size().width/2;
-    r.height= height;//mGr.size().height/2;
-    etld->selectObject(mGr,& r );
-
-}
-
-
-
-JNIEXPORT jintArray JNICALL Java_com_tracking_preview_TrackerManager_getRect(JNIEnv *env, jobject)
-{
-
-	 jintArray result;
-	 result = env->NewIntArray(4);
-
-	 if (etld->currBB == NULL) {
-	     return NULL;
-	 }
-
-	jint fill[4];
-	if (etld->currBB!=NULL)
-	{
-		fill[0]=etld->currBB->x;
-		fill[1]=etld->currBB->y;
-		fill[2]=etld->currBB->width;
-		fill[3]=etld->currBB->height;
-		env->SetIntArrayRegion(result, 0, 4, fill);
-		return result;
-	}
-
-	return NULL;
-
-}
-
-
-JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_ProcessTLD(JNIEnv*, jobject, jlong addrGray, jlong addrRgba)
-{
-	 Mat& mRgb = *(Mat*)addrRgba;
-
-	 etld->processImage(mRgb);
-
-	 if (etld->currBB!=NULL)
-	 {
-		 Rect r;
-		 r.x=etld->currBB->x;
-		 r.y=etld->currBB->y;
-		 r.width= etld->currBB->width;
-		 r.height= etld->currBB->height;
-
-		 rectangle(mRgb ,r,Scalar(0,0,255,0),5);
-		*//*   for(size_t i = 0; i < etld->detectorCascade->detectionResult->fgList->size(); i++)
-		                {
-		                    Rect r = etld->detectorCascade->detectionResult->fgList->at(i);
-		                    rectangle(mRgb, r, Scalar(255,0,0,0), 1);
-		                }
-		                *//*
-	 }
-	 else
-	 {
-		 Rect r;
-		 r.x=mRgb.size().width/2;
-		 r.y=mRgb.size().height/2;;
-		 r.width= 100;
-	     r.height= 100;
-	     rectangle(mRgb ,r,Scalar(0,0,0,255),5);
-	 }
-
 }*/
 
+JNIEXPORT jboolean JNICALL
+Java_com_tracking_preview_TrackerManager_openTrack(JNIEnv *env, jobject, jbyteArray yuvData,
+		jint dataType, jlong x, jlong y, jlong width, jlong height, jint imageWidth, jint imageHeight)
+{
 
-JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_OpenCMT(JNIEnv*, jobject, jlong addrGray, jlong addrRgba,jlong x, jlong y, jlong width, jlong height)
+	jboolean initBoolean = JNI_FALSE;
+	int len = env->GetArrayLength(yuvData);
+	allocateDataBuff(len);
+	caluateResizeSize(imageWidth, imageHeight);
+
+	env->GetByteArrayRegion(yuvData, 0, len, reinterpret_cast<jbyte *>(g_dataBuff));
+	Mat addrGray = getTrackMat(g_dataBuff, dataType, imageWidth, imageHeight);
+
+	if (cmt1!=NULL)
+	{
+		delete cmt1;
+	}
+	cmt1 = new CMT();
+	Mat& im_gray  = addrGray;
+	//Point p1(x,y);
+	//Point p2(x+width,y+height);
+
+	float rateX = CmtWidth * 1.0f / imageWidth;
+	float rateY = CmtHeight * 1.0f / imageHeight;
+	Point p1(x * rateX, y * rateY);
+	Point p2((x + width) * rateX, (y + height) * rateY);
+	Rect rect = Rect(p1, p2);
+
+	CMTinitiated=false;
+	//Rect rect(p1, p2);
+	cmt1->initialize(im_gray, rect);
+	CMTinitiated=true;
+	initBoolean = JNI_TRUE;
+
+
+	return initBoolean;
+}
+
+
+
+JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_processTrack(JNIEnv *env, jobject, jbyteArray yuvData,
+																			 jint dataType,jint imageWidth, jint imageHeight)
+{
+	if (!CMTinitiated)
+		return;
+	int len = env->GetArrayLength(yuvData);
+	allocateDataBuff(len);
+	env->GetByteArrayRegion(yuvData, 0, len, reinterpret_cast<jbyte *>(g_dataBuff));
+	Mat addrGray = getTrackMat(g_dataBuff, dataType, imageWidth, imageHeight);
+	Mat& im_gray  = addrGray;
+	cmt1->processFrame(im_gray);
+}
+
+
+/*JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_OpenCMT(JNIEnv*, jobject, jlong addrGray, jlong addrRgba,jlong x, jlong y, jlong width, jlong height)
 {
 
 	 if (cmt1!=NULL)
@@ -154,118 +181,52 @@ JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_ProcessCMT(JNIEn
 {
 	if (!CMTinitiated)
 		return;
-	//Mat& img  = *(Mat*)addrRgba;
 	Mat& im_gray  = *(Mat*)addrGray;
-
 	cmt1->processFrame(im_gray);
 
-//	        for(int i = 0; i<cmt->trackedKeypoints.size(); i++)
-//	            cv::circle(img, cmt->trackedKeypoints[i].first.pt, 3, cv::Scalar(255,255,255));
-/*	        cv::line(img, cmt1->topLeft, cmt1->topRight, cv::Scalar(255,255,255));
-	        cv::line(img, cmt1->topRight, cmt1->bottomRight, cv::Scalar(255,255,255));
-	        cv::line(img, cmt1->bottomRight, cmt1->bottomLeft, cv::Scalar(255,255,255));
-	        cv::line(img, cmt1->bottomLeft, cmt1->topLeft, cv::Scalar(255,255,255));*/
-
-}
+}*/
 
 
-JNIEXPORT jintArray JNICALL Java_com_tracking_preview_TrackerManager_CMTgetRect(JNIEnv *env, jobject)
+JNIEXPORT jintArray JNICALL Java_com_tracking_preview_TrackerManager_CMTgetRect(JNIEnv *env, jobject, jint imageWidth, jint imageHeight)
 {
 
 	if (!CMTinitiated)
 		return NULL;
 
-	 jintArray result;
-	 result = env->NewIntArray(8);
-
-
+	jintArray result;
+	result = env->NewIntArray(8);
 
 	jint fill[8];
 
 	{
+		float rateX = imageWidth * 1.0f / CmtWidth;
+		float rateY = imageHeight * 1.0f / CmtHeight;
+
         Point2f point2f[4];
         cmt1->bb_rot.points(point2f);
 		fill[0]=point2f[0].x;
 		fill[1]=point2f[0].y;
-		fill[2]=point2f[1].x;
-		fill[3]=point2f[1].y;
+		fill[2]=point2f[1].x * rateX;
+		fill[3]=point2f[1].y * rateY;
 		fill[4]=point2f[2].x;
 		fill[5]=point2f[2].y;
-		fill[6]=point2f[3].x;
-		fill[7]=point2f[3].y;
+		fill[6]=point2f[3].x * rateX;
+		fill[7]=point2f[3].y * rateY;
 		env->SetIntArrayRegion(result, 0, 8, fill);
+
 		return result;
 	}
 
 	return NULL;
-
 }
 
 JNIEXPORT jboolean JNICALL Java_com_tracking_preview_TrackerManager_CMTisTrackValid(JNIEnv *env){
 	return (jboolean) cmt1->is_track_valid;
 }
-/*
-JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_TLDSave(JNIEnv *env,jobject,jstring path)
-{
-
-	 if (etld==NULL)
-		 return;
-
-	  const char *str = env->GetStringUTFChars(path, 0);
-
-	  etld->writeToFile(str);
-
-	  env->ReleaseStringUTFChars( path, str);
-}
-
-JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_TLDLoad(JNIEnv *env,jobject,jstring Path)
-{
-*//*
-	if (etld!=NULL)
-		{
-			etld->release();
-			delete etld;
-		}
-	    etld = new TLD();
-*//*
-
-	  const char *str = env->GetStringUTFChars(Path, 0);
-
-	  etld->readFromFile(str);
-
-	  env->ReleaseStringUTFChars( Path, str);
-
-}*/
-
-/*
-JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_CMTSave(JNIEnv *env,jobject,jstring path)
-{
-
-	if (!CMTinitiated)
-			return ;
-
-	  const char *str = env->GetStringUTFChars(path, 0);
-
-	  cmt1->Save(str);
-
-	  env->ReleaseStringUTFChars( path, str);
-}*/
-
-
-/*JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_CMTLoad(JNIEnv *env,jobject,jstring path)
-{
 
 
 
-	  const char *str = env->GetStringUTFChars(path, 0);
 
-	  cmt1=new CMT();
 
-	  cmt1->Load(str);
-
-	  env->ReleaseStringUTFChars( path, str);
-
-	  CMTinitiated=true;
-}*/
 }
 

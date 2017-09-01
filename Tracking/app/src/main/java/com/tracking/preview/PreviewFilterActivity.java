@@ -417,14 +417,20 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 
 				if(mType.equals("CMT")){
 					if (!mIsInitTrack) {
-						TrackerManager.newInstance().OpenCMT(graymat.getNativeObjAddr(), rgbMat.getNativeObjAddr(),
-								(long)rectF.left, (long)rectF.top, (long)rectF.width(), (long)rectF.height());
+                    /*TrackerManager.newInstance().OpenCMT(graymat.getNativeObjAddr(), rgbMat.getNativeObjAddr(),
+                            (long) rectF.left, (long) rectF.top, (long) rectF.width(), (long) rectF.height());*/
+
+                    TrackerManager.newInstance().openTrack(mCurrentData, 0,
+                            (long) rectF.left, (long) rectF.top, (long) rectF.width(), (long) rectF.height()
+                            , mCameraTextureView.mCameraWidth, mCameraTextureView.mCameraHeight);
 						mIsInitTrack = true;
 					} else {
 
 						long startTime = System.currentTimeMillis();
 						try {
-							TrackerManager.newInstance().ProcessCMT(graymat.getNativeObjAddr(), rgbMat.getNativeObjAddr());
+//                        TrackerManager.newInstance().ProcessCMT(graymat.getNativeObjAddr(), rgbMat.getNativeObjAddr());
+                        TrackerManager.newInstance().processTrack(mCurrentData, 0,
+                                mCameraTextureView.mCameraWidth, mCameraTextureView.mCameraHeight);
 						}catch (Exception e){
 							e.printStackTrace();
 						}
@@ -438,25 +444,17 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 								}
 							}
 						});
-						double px = (double) rgbMat.width() / (double) rgbMat.width();
-						double py = (double) rgbMat.height() / (double) rgbMat.height();
 
-						int[] l = TrackerManager.newInstance().CMTgetRect();
-						if (TrackerManager.newInstance().CMTisTrackValid() && l != null&& mFramView.mDrawRectF != null) {
+                    int[] l = TrackerManager.newInstance().CMTgetRect(mCameraTextureView.mCameraWidth, mCameraTextureView.mCameraHeight);
+                    if (TrackerManager.newInstance().CMTisTrackValid() && l != null && mFramView.mDrawRectF != null) {
 
-							/*for(int i=0; i<l.length; i++){
-								Log.e(TAG, "jerrypxiao [" + i + "] =, " + l[i]);
-							}*/
+                        RectF rectFget = new RectF((float) (l[2]), (float) (l[3]),
+                                (float) (l[6]), (float) (l[7]));
 
-							Point topLeft = new Point(l[2] * px, l[3] * py);
-							//Point bottomLeft = new Point(l[2] * px, l[3] * py);
-							Point bottomRight = new Point(l[6] * px, l[7] * py);
-							//Point topRight = new Point(l[6] * px, l[7] * py);
-
-							final RectF resultRectF = new RectF((float)topLeft.x * mRateX,
-																(float) topLeft.y * mRateY,
-																(float) bottomRight.x * mRateX,
-																(float) bottomRight.y * mRateY);
+                        final RectF resultRectF = new RectF((float) rectFget.left * mRateX,
+                                (float) rectFget.top * mRateY,
+                                (float) rectFget.right * mRateX,
+                                (float) rectFget.bottom * mRateY);
 							mFramView.post(new Runnable() {
 								@Override
 								public void run() {
