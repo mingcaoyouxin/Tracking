@@ -7,7 +7,6 @@
 #include "opencv2/features2d/features2d.hpp"
 
 using cv::KeyPoint;
-using cv::Ptr;
 using cv::DescriptorMatcher;
 
 namespace cmt {
@@ -30,7 +29,7 @@ private:
     vector<int> classes;
     int desc_length;
     int num_bg_points;
-    Ptr<DescriptorMatcher> bfmatcher;
+    cv::Ptr<DescriptorMatcher> bfmatcher;
     float thr_dist;
     float thr_ratio;
     float thr_cutoff;
