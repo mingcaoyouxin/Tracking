@@ -2,7 +2,7 @@
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-
+#include<android/log.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/version.hpp>
 
@@ -161,7 +161,6 @@ void CMT::processFrame(Mat im_gray) {
     tracker.track(im_prev, im_gray, points_active, points_tracked, status);
     LOGD("CMTTIME processFrame points_tracked.size() %d,  trackerTime :%.3f\n", points_tracked.size(), (now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
     //FILE_LOG(logDEBUG) << points_tracked.size() << " tracked points.";
-    //LOGD("CMT processFrame points_tracked.size() :%d\n",points_tracked.size());
 
     //keep only successful classes
     vector<int> classes_tracked;
@@ -215,6 +214,7 @@ void CMT::processFrame(Mat im_gray) {
 
     // 估计旋转和缩放利用最终的融合点
     //Estimate scale and rotation from the fused points
+    double matchLocalTime = now_ms();
     float scale;
     float rotation;
     consensus.estimateScaleRotation(points_fused, classes_fused, scale, rotation);
@@ -279,7 +279,6 @@ void CMT::processFrame(Mat im_gray) {
 //    is_track_valid = true;
 
     LOGD("CMTTIME processFrame:%.3f\n",(now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
-    //FILE_LOG(logDEBUG) << "CMT::processFrame() return";
 }
 
 } /* namespace CMT */

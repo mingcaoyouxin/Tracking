@@ -20,12 +20,14 @@ public class TrackerManager {
 
     Tracker mTracker;
 
-    public native void OpenCMT(long matAddrGr, long matAddrRgba, long x,
-                               long y, long w, long h);
+    public native void openTrack(byte[] yuvData,int dataType, long x,
+                                 long y, long w, long h,
+                                 int cameraWidth, int cameraHeight);
 
-    public native void ProcessCMT(long matAddrGr, long matAddrRgba);
+    public native void processTrack(byte[] yuvData,int dataType,
+                                    int cameraWidth, int cameraHeight);
 
-    public static native int[] CMTgetRect();
+    public static native int[] CMTgetRect(int cameraWidth, int cameraHeight);
 
     public native boolean CMTisTrackValid();
 
@@ -44,7 +46,6 @@ public class TrackerManager {
     public void init() {
         mTracker = Tracker.create("KCF");
     }
-
 
     public static class DebugInfo{
         public float trackFrame;

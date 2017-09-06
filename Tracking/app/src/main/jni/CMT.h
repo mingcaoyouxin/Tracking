@@ -26,15 +26,15 @@ public:
     void initialize(const Mat im_gray, const cv::Rect rect);
     void processFrame(const Mat im_gray);
 
-    Fusion fusion;   // Êı¾İÈÚºÏÆ÷
-    Matcher matcher; // ÌØÕ÷Æ¥ÅäÆ÷
-    Tracker tracker; // ¸ú×ÙÆ÷
-    Consensus consensus;  // Ò»ÖÂ¼ì²éÆ÷
+    Fusion fusion;   // æ•°æ®èåˆå™¨
+    Matcher matcher; // ç‰¹å¾åŒ¹é…å™¨
+    Tracker tracker; // è·Ÿè¸ªå™¨
+    Consensus consensus;  // ä¸€è‡´æ£€æŸ¥å™¨
 
     string str_detector;
     string str_descriptor;
 
-    vector<Point2f> points_active; //public for visualization purposes ÓĞĞ§ÌØÕ÷µã
+    vector<Point2f> points_active; //public for visualization purposes æœ‰æ•ˆç‰¹å¾ç‚¹
     RotatedRect bb_rot;
 
     bool is_track_valid;
@@ -43,7 +43,7 @@ private:
     cv::Ptr<FeatureDetector> detector;
     cv::Ptr<DescriptorExtractor> descriptor;
 
-    Size2f size_initial;  // ³õÊ¼´óĞ¡
+    Size2f size_initial;  // åˆå§‹å¤§å°
 
     vector<int> classes_active;
 
