@@ -7,7 +7,7 @@ OpenCV_CAMERA_MODULES := off
 OPENCV_LIB_TYPE :=STATIC
 
 ifeq ("$(wildcard $(OPENCV_MK_PATH))","")
-include E:\QQProject\Tracking\Tracking\native\jni\OpenCV.mk
+include E:\coding\github3\Tracking\Tracking\native\jni\OpenCV.mk
 else
 include $(OPENCV_MK_PATH)
 endif
@@ -24,7 +24,7 @@ LOCAL_SRC_FILES += Consensus.cpp
 LOCAL_SRC_FILES += Fusion.cpp
 LOCAL_SRC_FILES += Matcher.cpp
 LOCAL_SRC_FILES += Tracker.cpp
-LOCAL_SRC_FILES += fastcluster/fastcluster.cpp
+LOCAL_SRC_FILES += fastcluster.cpp
 
 
 LOCAL_LDLIBS +=  -llog -ldl
@@ -35,7 +35,7 @@ LOCAL_CFLAGS += -ffunction-sections -fdata-sections -fvisibility=hidden -g -mflo
 LOCAL_LDFLAGS += -Wl,--gc-sections,--icf=safe
 LOCAL_ARM_MODE := arm
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
-# 采用NEON优化技术
+# NEON
 LOCAL_ARM_NEON := true
 endif
 
