@@ -33,9 +33,9 @@ public class FilterUtils {
 	public static ArrayList<Filter_Effect_Info> getEffectList(){
 		
 		ArrayList<Filter_Effect_Info> effect_list = new ArrayList<Filter_Effect_Info>();
-
-		effect_list.add(new Filter_Effect_Info("KCF算法", R.drawable.camerasdk_filter_normal,FilterType.I_1977));
 		effect_list.add(new Filter_Effect_Info("CMT算法", R.drawable.camerasdk_filter_nashville,FilterType.I_NASHVILLE));
+		effect_list.add(new Filter_Effect_Info("KCF算法", R.drawable.camerasdk_filter_normal,FilterType.I_1977));
+
 		effect_list.add(new Filter_Effect_Info("TLD算法", R.drawable.camerasdk_filter_in1977,FilterType.I_AMARO));
 		effect_list.add(new Filter_Effect_Info("MEDIANFLOW算法", R.drawable.camerasdk_filter_early_bird,FilterType.I_EARLYBIRD));
 		effect_list.add(new Filter_Effect_Info("MIL算法", R.drawable.camerasdk_filter_brannan,FilterType.I_BRANNAN));
