@@ -17,7 +17,9 @@ LOCAL_MODULE := OpenCV
 LOCAL_C_INCLUDES += $(LOCAL_PATH)
 
 LOCAL_SRC_FILES := hello.cpp
-LOCAL_SRC_FILES += jni_part.cpp
+#LOCAL_SRC_FILES += jni_part.cpp
+LOCAL_SRC_FILES += jni_part2.cpp
+LOCAL_SRC_FILES += CMTProxy.cpp
 LOCAL_SRC_FILES += CMT.cpp
 LOCAL_SRC_FILES += common.cpp
 LOCAL_SRC_FILES += Consensus.cpp
