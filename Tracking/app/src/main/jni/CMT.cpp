@@ -3,8 +3,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include<android/log.h>
-#include <opencv2/core/core.hpp>
-#include <opencv2/core/version.hpp>
 
 namespace cmt {
 
@@ -30,8 +28,11 @@ void CMT::initialize(const Mat im_gray, const cv::Rect rect)
     //Initialize detector and descriptor
 #if (CV_MAJOR_VERSION >= 3 && CV_VERSION_MINOR >=2) || (CV_MAJOR_VERSION >= 4)
     // opencv 3.2 以上版本
-    detector = cv::FastFeatureDetector::create(1);
+    detector = cv::FastFeatureDetector::create(10);
     descriptor = cv::BRISK::create();
+
+    //detector = cv::ORB::create();
+    //descriptor = cv::ORB::create();
 #else
     //Initialize detector and descriptor 初始化检测器FAST和描述器BRISK
     detector = FeatureDetector::create(str_detector);
@@ -81,6 +82,7 @@ void CMT::initialize(const Mat im_gray, const cv::Rect rect)
         detector = cv::FastFeatureDetector::create(expectedThreshold);
         detector->detect(im_gray, keypoints);
     }
+
     //Divide keypoints into foreground and background keypoints according to selection 分离出前景和背景的关键点，前景即跟踪框内
     vector<KeyPoint> keypoints_fg;
     vector<KeyPoint> keypoints_bg;
@@ -176,6 +178,9 @@ void CMT::processFrame(Mat im_gray) {
     double detectTime = now_ms();
     //Detect keypoints, compute descriptors
     vector<KeyPoint> keypoints;
+    detector->clear();
+    descriptor->clear();
+
     detector->detect(im_gray, keypoints);
 
     //FILE_LOG(logDEBUG) << keypoints.size() << " keypoints found.";
@@ -185,7 +190,7 @@ void CMT::processFrame(Mat im_gray) {
     Mat descriptors;
     double descriptorTime = now_ms();
     descriptor->compute(im_gray, keypoints, descriptors);
-    LOGD("CMTTIME processFrame  descriptorTime :%.3f\n", (now_ms()-descriptorTime)*1000.0/CLOCKS_PER_SEC);
+    LOGD("CMTTIME processFrame descriptorTime :%.3f\n", (now_ms()-descriptorTime)*1000.0/CLOCKS_PER_SEC);
     vector<Point2f> points_fused;
     vector<int> classes_fused;
 
@@ -274,9 +279,9 @@ void CMT::processFrame(Mat im_gray) {
                         || points_active.size() < initial_active_points_num/3;
 
     is_track_valid = !global_match_open;
-//    global_match_open = true;
-//
-//    is_track_valid = true;
+
+    //global_match_open = true;
+    //is_track_valid = true;
 
     LOGD("CMTTIME processFrame:%.3f\n",(now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
 }

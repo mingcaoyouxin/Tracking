@@ -1,4 +1,3 @@
-
 #include "common.h"
 #include "Consensus.h"
 #include "Fusion.h"
