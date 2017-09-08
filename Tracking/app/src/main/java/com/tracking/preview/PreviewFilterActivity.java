@@ -445,11 +445,14 @@ public class PreviewFilterActivity extends BaseActivity implements View.OnClickL
 							}
 						});
 
-                    int[] l = TrackerManager.newInstance().CMTgetRect(mCameraTextureView.mCameraWidth, mCameraTextureView.mCameraHeight);
+                    final float[] l = TrackerManager.newInstance().CMTgetRect(mCameraTextureView.mCameraWidth, mCameraTextureView.mCameraHeight);
                     if (TrackerManager.newInstance().CMTisTrackValid() && l != null && mFramView.mDrawRectF != null) {
+						/*Log.e(TAG, "result  = l[0]" + l[0] + ", l[1]" + l[1] + ", l[2]" + l[2]
+								 	+ ", l[3]" + l[3] + ", l[4]" + l[4]
+								    + ", l[5]" + l[5] + ", l[6]" + l[6]
+								    + ", l[7]" + l[7] );*/
 
-                        RectF rectFget = new RectF((float) (l[2]), (float) (l[3]),
-                                (float) (l[6]), (float) (l[7]));
+                        RectF rectFget = new RectF(l[2], l[3],l[6], l[7]);
 
                         final RectF resultRectF = new RectF((float) rectFget.left * mRateX,
                                 (float) rectFget.top * mRateY,

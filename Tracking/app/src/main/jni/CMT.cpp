@@ -45,6 +45,7 @@ void CMT::initialize(const Mat im_gray, const cv::Rect rect)
     detector->detect(im_gray, keypoints); // 检测初始图像的所有关键点
 
     // 固定特征点数量
+    /*
     int expectedKeyPointNum = 50;
     int expectedThreshold = 1;
     const size_t numSize = 100;
@@ -79,10 +80,12 @@ void CMT::initialize(const Mat im_gray, const cv::Rect rect)
 
         detector->clear();
         keypoints.clear();
+
         detector = cv::FastFeatureDetector::create(expectedThreshold);
         detector->detect(im_gray, keypoints);
-    }
 
+    }
+*/
     //Divide keypoints into foreground and background keypoints according to selection 分离出前景和背景的关键点，前景即跟踪框内
     vector<KeyPoint> keypoints_fg;
     vector<KeyPoint> keypoints_bg;
@@ -280,8 +283,8 @@ void CMT::processFrame(Mat im_gray) {
 
     is_track_valid = !global_match_open;
 
-    //global_match_open = true;
-    //is_track_valid = true;
+    global_match_open = true;
+    is_track_valid = true;
 
     LOGD("CMTTIME processFrame:%.3f\n",(now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
 }

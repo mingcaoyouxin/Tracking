@@ -27,7 +27,7 @@ public class TrackerManager {
     public native void processTrack(byte[] yuvData,int dataType,
                                     int cameraWidth, int cameraHeight);
 
-    public static native int[] CMTgetRect(int cameraWidth, int cameraHeight);
+    public static native float[] CMTgetRect(int cameraWidth, int cameraHeight);
 
     public native boolean CMTisTrackValid();
 

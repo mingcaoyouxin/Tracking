@@ -79,14 +79,14 @@ namespace cmtproxyspace {
     }
 
 
-    int *CMTProxy::getResultRect(const int imageWidth, const int imageHeight) {
+    float *CMTProxy::getResultRect(const int imageWidth, const int imageHeight) {
         float rateX = imageWidth * 1.0f / CmtWidth;
         float rateY = imageHeight * 1.0f / CmtHeight;
 
         Point2f point2f[4];
         cmt0->bb_rot.points(point2f);
 
-        int *fill = new int[8];
+        float *fill = new float[8];
         fill[0] = point2f[0].x;
         fill[1] = point2f[0].y;
         fill[2] = point2f[1].x * rateX;

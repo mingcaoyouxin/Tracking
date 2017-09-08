@@ -25,6 +25,7 @@ public:
     CMT() : str_detector("FAST"), str_descriptor("BRISK") {};
     void initialize(const Mat im_gray, const cv::Rect rect);
     void processFrame(const Mat im_gray);
+    void release();
 
     Fusion fusion;   // 数据融合器
     Matcher matcher; // 特征匹配器

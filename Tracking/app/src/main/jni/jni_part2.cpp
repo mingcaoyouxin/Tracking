@@ -57,19 +57,19 @@ JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_processTrack(JNI
 
 
 
-JNIEXPORT jintArray JNICALL Java_com_tracking_preview_TrackerManager_CMTgetRect(JNIEnv *env, jobject, jint imageWidth, jint imageHeight)
+JNIEXPORT jfloatArray JNICALL Java_com_tracking_preview_TrackerManager_CMTgetRect(JNIEnv *env, jobject, jint imageWidth, jint imageHeight)
 {
 
 	if (!CMTinitiated)
 		return NULL;
 
-	jintArray result;
-	result = env->NewIntArray(8);
+	jfloatArray result;
+	result = env->NewFloatArray(8);
 
-	jint fill[8];
+	jfloat fill[8];
 
 	{
-		int* rect = cmtProxy->getResultRect(imageWidth, imageHeight);
+		float* rect = cmtProxy->getResultRect(imageWidth, imageHeight);
 		fill[0]=rect[0];
 		fill[1]=rect[1];
 		fill[2]=rect[2];
@@ -78,7 +78,7 @@ JNIEXPORT jintArray JNICALL Java_com_tracking_preview_TrackerManager_CMTgetRect(
 		fill[5]=rect[5];
 		fill[6]=rect[6];
 		fill[7]=rect[7];
-		env->SetIntArrayRegion(result, 0, 8, fill);
+		env->SetFloatArrayRegion(result, 0, 8, fill);
 		return result;
 	}
 

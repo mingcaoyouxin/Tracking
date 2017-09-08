@@ -17,7 +17,7 @@ namespace cmtproxyspace {
         void trackFrame(uint8_t *buf,
                         int dataType, int imageWidth, int imageHeight);
 
-        int *getResultRect(const int imageWidth, const int imageHeight);
+        float *getResultRect(const int imageWidth, const int imageHeight);
 
         bool isTrackValid();
         /*Fusion fusion;   // 数据融合器
