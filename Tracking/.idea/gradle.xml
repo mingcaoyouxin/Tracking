@@ -9,6 +9,7 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/CameraSdk" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/camerafilters" />
             <option value="$PROJECT_DIR$/openCVLibrary320dev" />
