@@ -44,10 +44,12 @@ namespace cmtproxyspace {
                 //cv::cvtColor(tmp, resultMat, CV_YUV420sp2GRAY);
                 cv::cvtColor(tmp, img, CV_YUV420sp2GRAY);
                 if (CmtWidth == width && CmtHeight == height) {
-                    cv::cvtColor(img, resultMat, CV_GRAY2RGBA);
+                    //cv::cvtColor(img, resultMat, CV_GRAY2RGBA);
+                    resultMat = img;
                 } else {
                     cv::resize(img, grayMat, cv::Size(CmtWidth, CmtHeight));
-                    cv::cvtColor(grayMat, resultMat, CV_GRAY2RGBA);
+                    //cv::cvtColor(grayMat, resultMat, CV_GRAY2RGBA);
+                    resultMat = grayMat;
                 }
                 break;
         }

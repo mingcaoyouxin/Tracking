@@ -1,10 +1,6 @@
-package com.tracking.preview;
+package com.tracking.sdk;
 
 
-import android.text.TextUtils;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.opencv.tracking.Tracker;
 
 

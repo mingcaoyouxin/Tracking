@@ -24,7 +24,7 @@ void allocateDataBuff(int size) {
 
 
 JNIEXPORT jboolean JNICALL
-Java_com_tracking_preview_TrackerManager_openTrack(JNIEnv *env, jobject, jbyteArray yuvData,
+Java_com_tracking_sdk_TrackerManager_openTrack(JNIEnv *env, jobject, jbyteArray yuvData,
 		jint dataType, jlong x, jlong y, jlong width, jlong height, jint imageWidth, jint imageHeight)
 {
 	CMTinitiated = false;
@@ -44,7 +44,7 @@ Java_com_tracking_preview_TrackerManager_openTrack(JNIEnv *env, jobject, jbyteAr
 
 
 
-JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_processTrack(JNIEnv *env, jobject, jbyteArray yuvData,
+JNIEXPORT void JNICALL Java_com_tracking_sdk_TrackerManager_processTrack(JNIEnv *env, jobject, jbyteArray yuvData,
 																			 jint dataType,jint imageWidth, jint imageHeight)
 {
 	if (!CMTinitiated)
@@ -57,7 +57,7 @@ JNIEXPORT void JNICALL Java_com_tracking_preview_TrackerManager_processTrack(JNI
 
 
 
-JNIEXPORT jfloatArray JNICALL Java_com_tracking_preview_TrackerManager_CMTgetRect(JNIEnv *env, jobject, jint imageWidth, jint imageHeight)
+JNIEXPORT jfloatArray JNICALL Java_com_tracking_sdk_TrackerManager_CMTgetRect(JNIEnv *env, jobject, jint imageWidth, jint imageHeight)
 {
 
 	if (!CMTinitiated)
@@ -85,7 +85,7 @@ JNIEXPORT jfloatArray JNICALL Java_com_tracking_preview_TrackerManager_CMTgetRec
 	return NULL;
 }
 
-JNIEXPORT jboolean JNICALL Java_com_tracking_preview_TrackerManager_CMTisTrackValid(JNIEnv *env){
+JNIEXPORT jboolean JNICALL Java_com_tracking_sdk_TrackerManager_CMTisTrackValid(JNIEnv *env){
 	return (jboolean) cmtProxy->isTrackValid();
 }
 
