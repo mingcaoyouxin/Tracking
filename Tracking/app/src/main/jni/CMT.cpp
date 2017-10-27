@@ -8,14 +8,16 @@ namespace cmt {
 
 void CMT::initialize(const Mat im_gray, const cv::Rect rect)
 {
-
-    //Remember initial size ´æ´¢¸ú×ÙÇøÓòµÄ³õÊ¼´óÐ¡
+    //FILE_LOG(logDEBUG) << "CMT::initialize() call";
+    openFeaturesControl = true;
+    openGlobalControl = true;
+    //Remember initial size
     size_initial = rect.size();
 
-    //Remember initial image ´æ´¢³õÊ¼»Ò¶ÈÍ¼Ïñ
+    //Remember initial image ï¿½æ´¢ï¿½ï¿½Ê¼ï¿½Ò¶ï¿½Í¼ï¿½ï¿½
     im_prev = im_gray;
 
-    //Compute center of rect ¼ÆËã¸ú×ÙÇøÓòµÄÖÐÐÄÎ»ÖÃ
+    //Compute center of rect ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
     Point2f center = Point2f(rect.x + rect.width/2.0, rect.y + rect.height/2.0);
 
     //Initialize rotated bounding box
@@ -25,16 +27,23 @@ void CMT::initialize(const Mat im_gray, const cv::Rect rect)
     is_track_valid = true;
     initial_active_points_num = -1;
 
+    int initial_feature_threshold;
+    if(openFeaturesControl) {
+        initial_feature_threshold = 1;
+    } else {
+        initial_feature_threshold = 10;
+    }
+
     //Initialize detector and descriptor
 #if (CV_MAJOR_VERSION >= 3 && CV_VERSION_MINOR >=2) || (CV_MAJOR_VERSION >= 4)
-    // opencv 3.2 ÒÔÉÏ°æ±¾
-    detector = cv::FastFeatureDetector::create(10);
+    // opencv 3.2 ï¿½ï¿½ï¿½Ï°æ±¾
+    detector = cv::FastFeatureDetector::create(initial_feature_threshold);
     descriptor = cv::BRISK::create();
 
     //detector = cv::ORB::create();
     //descriptor = cv::ORB::create();
 #else
-    //Initialize detector and descriptor ³õÊ¼»¯¼ì²âÆ÷FASTºÍÃèÊöÆ÷BRISK
+    //Initialize detector and descriptor ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½FASTï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½BRISK
     detector = FeatureDetector::create(str_detector);
     descriptor = DescriptorExtractor::create(str_descriptor);
 
@@ -42,51 +51,51 @@ void CMT::initialize(const Mat im_gray, const cv::Rect rect)
 
     //Get initial keypoints in whole image and compute their descriptors
     vector<KeyPoint> keypoints;
-    detector->detect(im_gray, keypoints); // ¼ì²â³õÊ¼Í¼ÏñµÄËùÓÐ¹Ø¼üµã
+    detector->detect(im_gray, keypoints); // ï¿½ï¿½ï¿½ï¿½Ê¼Í¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¹Ø¼ï¿½ï¿½ï¿½
 
-    // ¹Ì¶¨ÌØÕ÷µãÊýÁ¿
-    /*
-    int expectedKeyPointNum = 50;
-    int expectedThreshold = 1;
-    const size_t numSize = 100;
-    int num[numSize + 1] = {0};
-    int fgNum = 0;
+    if(openFeaturesControl) {
+        int expectedKeyPointNum = 50;
+        int expectedThreshold = 1;
+        const size_t numSize = 100;
+        int num[numSize + 1] = {0};
+        int fgNum = 0;
 
-    for(size_t i = 0; i < keypoints.size(); i++) {
-        KeyPoint k = keypoints[i];
-        Point2f pt = k.pt;
+        for (size_t i = 0; i < keypoints.size(); i++) {
+            KeyPoint k = keypoints[i];
+            Point2f pt = k.pt;
 
-        if (pt.x > rect.x && pt.y > rect.y && pt.x < rect.br().x && pt.y < rect.br().y) {
-            fgNum++;
-            int r = (int) keypoints[i].response;
-            if (r > 0 && r < numSize) {
-                num[r]++;
-            } else if (r >= numSize) {
-                num[numSize]++;
-            } else {
-                num[0]++;
+            if (pt.x > rect.x && pt.y > rect.y && pt.x < rect.br().x && pt.y < rect.br().y) {
+                fgNum++;
+                int r = (int) keypoints[i].response;
+                if (r > 0 && r < numSize) {
+                    num[r]++;
+                } else if (r >= numSize) {
+                    num[numSize]++;
+                } else {
+                    num[0]++;
+                }
             }
         }
-    }
-    if(fgNum > expectedKeyPointNum) {
-        int sum = 0;
-        for (size_t i = 0; i < numSize + 1; i++) {
-            sum += num[i];
-            if (sum > fgNum - expectedKeyPointNum) {
-                expectedThreshold = i;
-                break;
+        if (fgNum > expectedKeyPointNum) {
+            int sum = 0;
+            for (size_t i = 0; i < numSize + 1; i++) {
+                sum += num[i];
+                if (sum > fgNum - expectedKeyPointNum) {
+                    expectedThreshold = i;
+                    break;
+                }
             }
+            LOGE("expectedThreshold = %d\n", expectedThreshold);
+            detector->clear();
+            keypoints.clear();
+            detector = cv::FastFeatureDetector::create(expectedThreshold);
+            detector->detect(im_gray, keypoints);
         }
-
-        detector->clear();
-        keypoints.clear();
-
-        detector = cv::FastFeatureDetector::create(expectedThreshold);
-        detector->detect(im_gray, keypoints);
-
     }
-*/
-    //Divide keypoints into foreground and background keypoints according to selection ·ÖÀë³öÇ°¾°ºÍ±³¾°µÄ¹Ø¼üµã£¬Ç°¾°¼´¸ú×Ù¿òÄÚ
+
+
+
+    //Divide keypoints into foreground and background keypoints according to selection
     vector<KeyPoint> keypoints_fg;
     vector<KeyPoint> keypoints_bg;
 
@@ -105,7 +114,7 @@ void CMT::initialize(const Mat im_gray, const cv::Rect rect)
         }
     }
 
-    //Create foreground classes ´´½¨Ç°¾°Àà
+    //Create foreground classes ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½
     vector<int> classes_fg;
     classes_fg.reserve(keypoints_fg.size());
     for (size_t i = 0; i < keypoints_fg.size(); i++)
@@ -113,13 +122,13 @@ void CMT::initialize(const Mat im_gray, const cv::Rect rect)
         classes_fg.push_back(i);
     }
 
-    //Compute foreground/background features ¼ÆËãÇ°¾°ºÍ±³¾°µÄÌØÕ÷
+    //Compute foreground/background features ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Í±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     Mat descs_fg;
     Mat descs_bg;
     descriptor->compute(im_gray, keypoints_fg, descs_fg);
     descriptor->compute(im_gray, keypoints_bg, descs_bg);
 
-    //Only now is the right time to convert keypoints to points, as compute() might remove some keypoints ½«¹Ø¼üµã×ª»»Îªµã´æ´¢
+    //Only now is the right time to convert keypoints to points, as compute() might remove some keypoints ï¿½ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½×ªï¿½ï¿½Îªï¿½ï¿½æ´¢
     vector<Point2f> points_fg;
     vector<Point2f> points_bg;
 
@@ -136,20 +145,20 @@ void CMT::initialize(const Mat im_gray, const cv::Rect rect)
         points_bg.push_back(keypoints_bg[i].pt);
     }
 
-    //Create normalized points ´´½¨Õý¹æ»¯µÄµã£¬¼´¼ÆËãÇ°¾°µÄ¹Ø¼üµãµ½Ç°¾°¿òÖÐµÄÏà¶ÔÎ»ÖÃ×÷ÎªÕý¹æ»¯µÄµãµÄ×ø±ê
+    //Create normalized points ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ»¯ï¿½Äµã£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Ä¹Ø¼ï¿½ï¿½ãµ½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½æ»¯ï¿½Äµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     vector<Point2f> points_normalized;
     for (size_t i = 0; i < points_fg.size(); i++)
     {
         points_normalized.push_back(points_fg[i] - center);
     }
 
-    //Initialize matcher ³õÊ¼»¯Æ¥ÅäÆ÷
+    //Initialize matcher ï¿½ï¿½Ê¼ï¿½ï¿½Æ¥ï¿½ï¿½ï¿½ï¿½
     matcher.initialize(points_normalized, descs_fg, classes_fg, descs_bg, center);
 
-    //Initialize consensus ³õÊ¼»¯Ò»ÖÂÆ÷
+    //Initialize consensus ï¿½ï¿½Ê¼ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½
     consensus.initialize(points_normalized);
 
-    //Create initial set of active keypoints ´´½¨³õÊ¼µÄ»î¶¯µã£¬¼´Ç°¾°¹Ø¼üµãµÄ×ø±ê
+    //Create initial set of active keypoints ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½Ä»î¶¯ï¿½ã£¬ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     for (size_t i = 0; i < keypoints_fg.size(); i++)
     {
         points_active.push_back(keypoints_fg[i].pt);
@@ -162,7 +171,7 @@ void CMT::processFrame(Mat im_gray) {
     double startCTime = now_ms();
     vector<Point2f> points_tracked;
     vector<unsigned char> status;
-    // ÀûÓÃ¹âÁ÷·¨¼ÆËã¹Ø¼üµãµÄµ±Ç°Î»ÖÃ¡£
+    // ï¿½ï¿½ï¿½Ã¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½Äµï¿½Ç°Î»ï¿½Ã¡ï¿½
     tracker.track(im_prev, im_gray, points_active, points_tracked, status);
     LOGD("CMTTIME processFrame points_tracked.size() %d,  trackerTime :%.3f\n", points_tracked.size(), (now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
     //FILE_LOG(logDEBUG) << points_tracked.size() << " tracked points.";
@@ -198,7 +207,7 @@ void CMT::processFrame(Mat im_gray) {
     vector<int> classes_fused;
 
     if(global_match_open) {
-        //Match keypoints globally ÔÚÈ«¾ÖºÍÖ®Ç°µÄÊý¾Ý¿âÆ¥ÅäÌØÕ÷µã£¬¼ÆËã³öÆ¥ÅäµÄÌØÕ÷µã
+        //Match keypoints globally ï¿½ï¿½È«ï¿½Öºï¿½Ö®Ç°ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½Æ¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã£¬ï¿½ï¿½ï¿½ï¿½ï¿½Æ¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         double matchGlobalTime = now_ms();
         vector<Point2f> points_matched_global;
         vector<int> classes_matched_global;
@@ -208,7 +217,7 @@ void CMT::processFrame(Mat im_gray) {
         //FILE_LOG(logDEBUG) << points_matched_global.size() << " points matched globally.";
 
         //Fuse tracked and globally matched points
-        //ÈÚºÏ¸ú×ÙºÍÆ¥ÅäµÄµã
+        //ï¿½ÚºÏ¸ï¿½ï¿½Ùºï¿½Æ¥ï¿½ï¿½Äµï¿½
         double fusionTime = now_ms();
         fusion.preferFirst(points_tracked, classes_tracked, points_matched_global,
                            classes_matched_global,
@@ -220,7 +229,7 @@ void CMT::processFrame(Mat im_gray) {
         classes_fused = classes_tracked;
     }
 
-    // ¹À¼ÆÐý×ªºÍËõ·ÅÀûÓÃ×îÖÕµÄÈÚºÏµã
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ÚºÏµï¿½
     //Estimate scale and rotation from the fused points
     double matchLocalTime = now_ms();
     float scale;
@@ -230,7 +239,7 @@ void CMT::processFrame(Mat im_gray) {
     //FILE_LOG(logDEBUG) << "scale " << scale << ", " << "rotation " << rotation;
 
     //Find inliers and the center of their votes
-    //¼ÆËãÒ»ÖÂÐÔ£¬»ñÈ¡Ïà¹ØµÄµãinliersºÍÖÐÐÄ
+    //ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ô£ï¿½ï¿½ï¿½È¡ï¿½ï¿½ØµÄµï¿½inliersï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     Point2f center;
     vector<Point2f> points_inlier;
     vector<int> classes_inlier;
@@ -240,7 +249,7 @@ void CMT::processFrame(Mat im_gray) {
     //FILE_LOG(logDEBUG) << points_inlier.size() << " inlier points.";
     //FILE_LOG(logDEBUG) << "center " << center;
 
-    //Match keypoints locally ¾Ö²¿Æ¥Åä
+    //Match keypoints locally ï¿½Ö²ï¿½Æ¥ï¿½ï¿½
     vector<Point2f> points_matched_local;
     vector<int> classes_matched_local;
     matcher.matchLocal(keypoints, descriptors, center, scale, rotation, points_matched_local, classes_matched_local);
@@ -254,7 +263,7 @@ void CMT::processFrame(Mat im_gray) {
     classes_active.clear();
 
     //Fuse locally matched points and inliers
-    // ÈÚºÏ¾Ö²¿Æ¥ÅäµÄµãºÍinliers
+    // ï¿½ÚºÏ¾Ö²ï¿½Æ¥ï¿½ï¿½Äµï¿½ï¿½inliers
     fusion.preferFirst(points_matched_local, classes_matched_local, points_inlier, classes_inlier, points_active, classes_active);
 //    points_active = points_fused;
 //    classes_active = classes_fused;
@@ -264,10 +273,10 @@ void CMT::processFrame(Mat im_gray) {
          points_active.size(), initial_active_points_num);
 
     //TODO: Use theta to suppress result
-    // ¼ÆËã³öÐÂµÄ¸ú×Ù´°¿Ú
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÂµÄ¸ï¿½ï¿½Ù´ï¿½ï¿½ï¿½
     bb_rot = RotatedRect(center,  size_initial * scale, rotation/CV_PI * 180);
 
-    //Remember current image ¸üÐÂÉÏÒ»Ö¡Í¼Ïñ
+    //Remember current image ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»Ö¡Í¼ï¿½ï¿½
     im_prev = im_gray;
 
     if(initial_active_points_num < 0){
@@ -275,16 +284,19 @@ void CMT::processFrame(Mat im_gray) {
     }
 
     //satyTest
-    global_match_open = center.x - bb_rot.size.width / 2  < 0
-                        || center.x + bb_rot.size.width / 2 > im_prev.cols
-                        || center.y - bb_rot.size.height / 2 < 0
-                        || center.y + bb_rot.size.height / 2 > im_prev.rows
-                        || points_active.size() < initial_active_points_num/3;
+    if(openGlobalControl) {
+        is_track_valid = !(center.x - bb_rot.size.width / 2 < 0
+                            || center.x + bb_rot.size.width / 2 > im_prev.cols
+                            || center.y - bb_rot.size.height / 2 < 0
+                            || center.y + bb_rot.size.height / 2 > im_prev.rows
+                            || points_active.size() < initial_active_points_num / 3);
 
-    is_track_valid = !global_match_open;
 
-    global_match_open = true;
-    is_track_valid = true;
+        global_match_open = !is_track_valid;
+    } else {
+        global_match_open = true;
+        is_track_valid = true;
+    }
 
     LOGD("CMTTIME processFrame:%.3f\n",(now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
 }

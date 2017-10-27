@@ -55,6 +55,9 @@ private:
     bool global_match_open;
 
     int initial_active_points_num;
+
+    bool openFeaturesControl;
+    bool openGlobalControl;
 };
 
 } /* namespace CMT */
