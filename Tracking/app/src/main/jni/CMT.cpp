@@ -1,5 +1,4 @@
 #include "CMT.h"
-
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include<android/log.h>
@@ -56,7 +55,7 @@ void CMT::initialize(const Mat im_gray, const cv::Rect rect)
     if(openFeaturesControl) {
         int expectedKeyPointNum = 50;
         int expectedThreshold = 1;
-        const size_t numSize = 100;
+        const size_t numSize = 200;
         int num[numSize + 1] = {0};
         int fgNum = 0;
 
@@ -164,18 +163,42 @@ void CMT::initialize(const Mat im_gray, const cv::Rect rect)
         points_active.push_back(keypoints_fg[i].pt);
         classes_active = classes_fg;
     }
+    initial_active_points_num = points_active.size();
 }
 
 void CMT::processFrame(Mat im_gray) {
     //Track keypoints
+    Rect preObjRect = bb_rot.boundingRect2f();
+    LOGD("CMTRectWatch bb_rot.center:%f,%f  boundingRect(x,y,w,h):%d,%d,%d,%d",bb_rot.center.x,bb_rot.center.y,preObjRect.x,preObjRect.y,preObjRect.width,preObjRect.height);
+    cv::Range rcols,rrows;
+    rcols.start = (int)(preObjRect.x > 0.5 * preObjRect.width? preObjRect.x-0.5 * preObjRect.width : 0);
+    rcols.end = (int)(preObjRect.x + 1.5 * preObjRect.width > im_gray.cols - 1? im_gray.cols-1 : preObjRect.x + 1.5 * preObjRect.width);
+    rrows.start = (int)(preObjRect.y > 0.5 * preObjRect.height? preObjRect.y-0.5 * preObjRect.height : 0);
+    rrows.end = (int)(preObjRect.y + 1.5 * preObjRect.height > im_gray.rows - 1? im_gray.rows-1 : preObjRect.y + 1.5 * preObjRect.height);
+    Mat im_prev_patch(im_prev,rrows,rcols);
+    Mat im_gray_patch(im_gray,rrows,rcols);
+    LOGD("CMTRectWatch imgray:%d,%d  imgray_patch:%d,%d  rcols:%d,%d  rrows:%d,%d",
+         im_gray.cols,im_gray.rows,im_gray_patch.cols,im_gray_patch.rows,rcols.start,rcols.end,rrows.start,rrows.end);
     double startCTime = now_ms();
     vector<Point2f> points_tracked;
     vector<unsigned char> status;
     // ���ù���������ؼ���ĵ�ǰλ�á�
-    tracker.track(im_prev, im_gray, points_active, points_tracked, status);
-    LOGD("CMTTIME processFrame points_tracked.size() %d,  trackerTime :%.3f\n", points_tracked.size(), (now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
+    vector<Point2f> points_active_relative;
+    Point2f patchCornerPoint = Point2f(rcols.start,rrows.start);
+    for(Point2f point:points_active){
+        Point2f pr = point - patchCornerPoint;
+        points_active_relative.push_back(pr);
+    }
+    vector<Point2f> points_tracked_relative;
+    tracker.track(im_prev_patch, im_gray_patch, points_active_relative, points_tracked_relative, status);
+//    tracker.track(im_prev_patch, im_gray_patch, points_active, points_tracked, status);
+    LOGD("CMTTIME processFrame points_active.size() %d, points_tracked.size() %d,  trackerTime :%.3f\n",  points_active.size(), points_tracked_relative.size(), (now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
     //FILE_LOG(logDEBUG) << points_tracked.size() << " tracked points.";
-
+    points_tracked.clear();
+    for(Point2f point:points_tracked_relative){
+        Point2f pr = point + patchCornerPoint;
+        points_tracked.push_back(pr);
+    }
     //keep only successful classes
     vector<int> classes_tracked;
     for (size_t i = 0; i < classes_active.size(); i++)
@@ -187,26 +210,31 @@ void CMT::processFrame(Mat im_gray) {
 
     }
 
-    double detectTime = now_ms();
+
     //Detect keypoints, compute descriptors
     vector<KeyPoint> keypoints;
     detector->clear();
     descriptor->clear();
-
-    detector->detect(im_gray, keypoints);
-
-    //FILE_LOG(logDEBUG) << keypoints.size() << " keypoints found.";
-    LOGD("CMTTIME processFrame  detectTime keypoints detect %d coss :%.3f\n",keypoints.size(),
-         (now_ms()-detectTime)*1000.0/CLOCKS_PER_SEC);
-
     Mat descriptors;
-    double descriptorTime = now_ms();
-    descriptor->compute(im_gray, keypoints, descriptors);
-    LOGD("CMTTIME processFrame descriptorTime :%.3f\n", (now_ms()-descriptorTime)*1000.0/CLOCKS_PER_SEC);
     vector<Point2f> points_fused;
     vector<int> classes_fused;
 
+
+
+
     if(global_match_open) {
+        double detectTime = now_ms();
+        detector->detect(im_gray, keypoints);
+
+        //FILE_LOG(logDEBUG) << keypoints.size() << " keypoints found.";
+        LOGD("CMTTIME processFrame  detectTime keypoints detect %d coss :%.3f\n",keypoints.size(),
+             (now_ms()-detectTime)*1000.0/CLOCKS_PER_SEC);
+
+
+        double descriptorTime = now_ms();
+        descriptor->compute(im_gray, keypoints, descriptors);
+        LOGD("CMTTIME processFrame descriptorTime :%.3f\n", (now_ms()-descriptorTime)*1000.0/CLOCKS_PER_SEC);
+
         //Match keypoints globally ��ȫ�ֺ�֮ǰ�����ݿ�ƥ�������㣬�����ƥ���������
         double matchGlobalTime = now_ms();
         vector<Point2f> points_matched_global;
@@ -225,6 +253,19 @@ void CMT::processFrame(Mat im_gray) {
         LOGE("CMTTIME processFrame points_fused.size()= %d \n", points_fused.size());
         //FILE_LOG(logDEBUG) << points_fused.size() << " points fused.";
     } else {
+        double detectTime = now_ms();
+        detector->detect(im_gray_patch, keypoints);
+        //FILE_LOG(logDEBUG) << keypoints.size() << " keypoints found.";
+        LOGD("CMTTIME processFrame  detectTime keypoints detect %d coss :%.3f\n",keypoints.size(),
+             (now_ms()-detectTime)*1000.0/CLOCKS_PER_SEC);
+
+        double descriptorTime = now_ms();
+        descriptor->compute(im_gray_patch, keypoints, descriptors);
+        LOGD("CMTTIME processFrame descriptorTime :%.3f\n", (now_ms()-descriptorTime)*1000.0/CLOCKS_PER_SEC);
+        for(size_t i = 0;i<keypoints.size();i++){
+            keypoints.at(i).pt.x += rcols.start;
+            keypoints.at(i).pt.y += rrows.start;
+        }
         points_fused = points_tracked;
         classes_fused = classes_tracked;
     }
@@ -255,50 +296,54 @@ void CMT::processFrame(Mat im_gray) {
     matcher.matchLocal(keypoints, descriptors, center, scale, rotation, points_matched_local, classes_matched_local);
 
     //FILE_LOG(logDEBUG) << points_matched_local.size() << " points matched locally.";
-    LOGE("CMTTIME processFrame points_matched_local.size()= %d matchLocalTime :%.3f\n",
+    LOGD("CMTTIME processFrame points_matched_local.size()= %d matchLocalTime :%.3f\n",
          points_matched_local.size(), (now_ms()-matchLocalTime)*1000.0/CLOCKS_PER_SEC);
 
-    //Clear active points
-    points_active.clear();
-    classes_active.clear();
-
-    //Fuse locally matched points and inliers
-    // �ںϾֲ�ƥ��ĵ��inliers
-    fusion.preferFirst(points_matched_local, classes_matched_local, points_inlier, classes_inlier, points_active, classes_active);
-//    points_active = points_fused;
-//    classes_active = classes_fused;
-
-    //FILE_LOG(logDEBUG) << points_active.size() << " final fused points.";
-    LOGI("CMTTIME processFrame final fused points :%d, initial_active_points_num = :%d \n",
-         points_active.size(), initial_active_points_num);
-
-    //TODO: Use theta to suppress result
-    // ������µĸ��ٴ���
-    bb_rot = RotatedRect(center,  size_initial * scale, rotation/CV_PI * 180);
-
-    //Remember current image ������һ֡ͼ��
-    im_prev = im_gray;
-
-    if(initial_active_points_num < 0){
-        initial_active_points_num = points_active.size();
-    }
-
-    //satyTest
-    if(openGlobalControl) {
+    if(openGlobalControl){
+        vector<Point2f> temp_points_active;
+        vector<int> temp_classes_active;
+        fusion.preferFirst(points_matched_local, classes_matched_local, points_inlier, classes_inlier, temp_points_active, temp_classes_active);
+        LOGI("CMTTIME processFrame final fused points :%d, initial_active_points_num = :%d \n",
+             temp_points_active.size(), initial_active_points_num);
         is_track_valid = !(center.x - bb_rot.size.width / 2 < 0
-                            || center.x + bb_rot.size.width / 2 > im_prev.cols
-                            || center.y - bb_rot.size.height / 2 < 0
-                            || center.y + bb_rot.size.height / 2 > im_prev.rows
-                            || points_active.size() < initial_active_points_num / 3);
+                           || center.x + bb_rot.size.width / 2 > im_prev.cols
+                           || center.y - bb_rot.size.height / 2 < 0
+                           || center.y + bb_rot.size.height / 2 > im_prev.rows
+                           || temp_points_active.size() < initial_active_points_num / 3);
 
 
         global_match_open = !is_track_valid;
+        if(is_track_valid) {
+            bb_rot = RotatedRect(center,  size_initial * scale, rotation/CV_PI * 180);
+            im_prev = im_gray;
+            points_active.clear();
+            classes_active.clear();
+            points_active = temp_points_active;
+            classes_active = temp_classes_active;
+        }
+
     } else {
+    //Clear active points
+        points_active.clear();
+        classes_active.clear();
+
+        //Fuse locally matched points and inliers
+        // �ںϾֲ�ƥ��ĵ��inliers
+        fusion.preferFirst(points_matched_local, classes_matched_local, points_inlier, classes_inlier, points_active, classes_active);
+    //    points_active = points_fused;
+    //    classes_active = classes_fused;
+
+    //FILE_LOG(logDEBUG) << points_active.size() << " final fused points.";
+        LOGI("CMTTIME processFrame final fused points :%d, initial_active_points_num = :%d \n",
+             points_active.size(), initial_active_points_num);
+
         global_match_open = true;
         is_track_valid = true;
+        bb_rot = RotatedRect(center/*+Point2f(rcols.start,rrows.start)*/,  size_initial * scale, rotation/CV_PI * 180);
+        im_prev = im_gray;
     }
 
-    LOGD("CMTTIME processFrame:%.3f\n",(now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
+    LOGE("CMTTIME processFrame:%.3f\n",(now_ms()-startCTime)*1000.0/CLOCKS_PER_SEC);
 }
 
 } /* namespace CMT */
